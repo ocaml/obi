@@ -3,7 +3,7 @@
 (executable (
   (name scheduler)
   (public_name ciso-scheduler)
-  (libraries (capnp-rpc-lwt capnp-rpc-unix))
+  (libraries (capnp-rpc-lwt capnp-rpc-unix rresult cmdliner logs.fmt fmt.tty fmt.cli))
   (flags (:standard -w -53-55))
 ))
 

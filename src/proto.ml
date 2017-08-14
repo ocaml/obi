@@ -3,6 +3,100 @@ module Api = Worker_api.MakeRPC(Capnp_rpc_lwt)
 open Lwt.Infix
 open Capnp_rpc_lwt
 
+module Log = struct
+
+  module Impl = struct
+
+    type t = {
+      logs : (int64, Buffer.t) Hashtbl.t;
+      mutable last_id : int64;
+      close : (int64 -> Buffer.t -> unit);
+    }
+
+    let v ~close () =
+      let logs = Hashtbl.create 7 in
+      let last_id = 1L in    
+      { last_id; logs; close }
+
+    let init ~label t =
+      let id = t.last_id in
+      t.last_id <- Int64.add t.last_id 1L;
+      let buf = Buffer.create 1024 in
+      Hashtbl.add t.logs id buf;
+      id
+
+    let send ~id ~msg t =
+      match Hashtbl.find t.logs id with
+      | buf -> Buffer.add_string buf msg
+      | exception Not_found -> Fmt.pr "Not_found\n%!"; (* TODO log error *) ()
+
+    let close ~id t =
+      match Hashtbl.find t.logs id with
+      | buf ->
+          t.close id buf;
+          Hashtbl.remove t.logs id
+      | exception Not_found -> (* TODO log error *) ()
+  end
+  
+  module Client = struct
+    module Log = Api.Client.Log
+
+    let init ~label t =
+      let open Log.Init in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.label_set params label;
+      Capability.call_for_value_exn t method_id request >|= Results.id_get
+
+    let send ~id ~msg t =
+      let open Log.Send in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.msg_set params msg;
+      Params.id_set params id;
+      Capability.call_for_unit_exn t method_id request
+
+    let close ~id t =
+      let open Log.Close in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.id_set params id;
+      Capability.call_for_unit_exn t method_id request
+  end
+  
+  module Service = struct
+
+    let t impl =
+      let module Log = Api.Service.Log in
+      Log.local @@ object
+        inherit Log.service
+
+        method init_impl params release_param_caps =
+          let open Log.Init in
+          let label = Params.label_get params in
+          release_param_caps ();
+          let response, results = Service.Response.create Results.init_pointer in
+          let id = Impl.init ~label impl in
+          Results.id_set results id;
+          Service.return response
+
+        method send_impl params release_param_caps =
+           let open Log.Send in
+           let msg = Params.msg_get params in
+           let id = Params.id_get params in
+           release_param_caps ();
+           Fmt.pr "send_impl: %Lu %s\n%!" id msg;
+           Impl.send ~id ~msg impl;
+           Service.return_empty ()
+          
+        method close_impl params release_param_caps =
+          let open Log.Close in
+          let id = Params.id_get params in
+          release_param_caps ();
+          Impl.close ~id impl;
+          Service.return_empty ()
+      end
+
+  end
+end
+
 module Client = struct
   module Register = Api.Client.Register
 
