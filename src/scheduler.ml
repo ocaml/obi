@@ -14,7 +14,10 @@ let logger =
   let close id buf =
     Fmt.pr "Closed %Lu:\n%s\n---\n" id (Buffer.contents buf)
   in
-  let impl = Proto.Log.Impl.v ~close () in
+  let append id buf msg =
+    Fmt.pr "Event %Lu: %s\n" id msg
+  in
+  let impl = Memory_log.v ~close ~append () in
   Proto.Log.Service.t impl
 
 let serve addr : unit =
