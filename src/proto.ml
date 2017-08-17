@@ -3,6 +3,39 @@ module Api = Worker_api.MakeRPC(Capnp_rpc_lwt)
 open Lwt.Infix
 open Capnp_rpc_lwt
 
+module Build = struct
+  module Client = struct
+    module Build = Api.Client.Build
+    let shell ~cmd t =
+      let open Build.Shell in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.cmd_set params cmd;
+      Capability.call_for_value_exn t method_id request >|= Results.result_get >|= fun r ->
+      let stdout = Api.Reader.Build.ProcessOutput.stdout_get r in
+      let stderr = Api.Reader.Build.ProcessOutput.stderr_get r in
+      let exit_code = Api.Reader.Build.ProcessOutput.exit_code_get r in
+      (exit_code, stdout, stderr)
+  end
+  module Service = struct
+    let proc =
+      ()
+
+    let t =
+      let module Build = Api.Service.Build in
+      Build.local @@ object
+        inherit Build.service
+        method shell_impl params release_param_caps =
+          let open Build.Shell in
+          let cmd = Params.cmd_get params in
+          release_param_caps ();
+          let exit_code, stdout, stderr = Worker.build ~cmd in
+          let response, results = Service.Response.create Results.init_pointer in
+          Service.return response
+      end
+  end
+  
+end
+
 module Log = struct
   module Client = struct
     module Log = Api.Client.Log

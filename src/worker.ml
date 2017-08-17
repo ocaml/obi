@@ -16,6 +16,13 @@ let v () =
   let last_id = 1 in
   { nodes; last_id}
 
+let build ~cmd =
+  Printf.eprintf "%s: %s\n%!" "node" cmd;
+  let exit_code = 1l in
+  let stdout = "stdout" in
+  let stderr = "stderr" in
+  exit_code, stdout, stderr
+
 let register ~hostname ~arch ~ncpus t =
   let node = { hostname; arch; ncpus } in
   let id = t.last_id in
