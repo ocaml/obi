@@ -4,11 +4,8 @@ open Lwt.Infix
 open Capnp_rpc_lwt
 
 module Log = struct
-
   module Client = struct
-
     module Log = Api.Client.Log
-
     let init ~label t =
       let open Log.Init in
       let request, params = Capability.Request.create Params.init_pointer in
@@ -27,16 +24,13 @@ module Log = struct
       let request, params = Capability.Request.create Params.init_pointer in
       Params.id_set params id;
       Capability.call_for_unit_exn t method_id request
-
   end
 
   module Service = struct
-
     let t impl =
       let module Log = Api.Service.Log in
       Log.local @@ object
         inherit Log.service
-
         method init_impl params release_param_caps =
           let open Log.Init in
           let label = Params.label_get params in
@@ -62,16 +56,12 @@ module Log = struct
           Memory_log.close ~id impl;
           Service.return_empty ()
       end
-
   end
 end
 
 module Register = struct
-
   module Client = struct
-
     module Register = Api.Client.Register
-
     let ping ~msg t =
       let open Register.Ping in
       let request, params = Capability.Request.create Params.init_pointer in
@@ -88,12 +78,10 @@ module Register = struct
   end
 
   module Service = struct
-
     let t nodes log_service =
       let module Register = Api.Service.Register in
       Register.local @@ object
         inherit Register.service
-
         method ping_impl params release_param_caps =
           let open Register.Ping in
           let msg = Params.msg_get params in
@@ -112,48 +100,6 @@ module Register = struct
           let response, results = Service.Response.create Results.init_pointer in
           Results.logger_set results (Some log_service);
           Service.return response
-
       end
   end
-
 end
-
-(*
-let service =
-  let module Register = Api.Service.Register in
-  Register.local @@ object
-    inherit Register.service
-
-    method ping_impl params release_param_caps =
-      let open Register.Ping in
-      let msg = Params.msg_get params in
-      release_param_caps ();
-      let response, results = Service.Response.create Results.init_pointer in
-      Results.reply_set results ("echo:" ^ msg);
-      Service.return response
-
-    method heartbeat_impl params release_params =
-      let open Register.Heartbeat in
-      let msg = Params.msg_get params in
-      let callback = Params.callback_get params in
-      release_params ();
-      match callback with
-      | None -> Service.fail "No callback parameter!"
-      | Some callback ->
-        Lwt.async (fun () -> notify callback msg);
-        Service.return_empty ()
-
-    method logger_impl _ release_params =
-      let open Register.Logger in
-      release_params ();
-      let response, results = Service.Response.create Results.init_pointer in
-      Results.callback_set results (Some (callback_service prerr_endline));
-      Service.return response
-
-  end
-
-let logger t =
-  let open Client.Register.Logger in
-  let request = Capability.Request.create_no_args () in
-  Capability.call_for_caps t method_id request Results.callback_get_pipelined
-*)
