@@ -10,17 +10,14 @@ module Build = struct
       let open Build.Shell in
       let request, params = Capability.Request.create Params.init_pointer in
       Params.cmd_set params cmd;
-      Capability.call_for_value_exn t method_id request >|= Results.result_get >|= fun r ->
-      let stdout = Api.Reader.Build.ProcessOutput.stdout_get r in
-      let stderr = Api.Reader.Build.ProcessOutput.stderr_get r in
-      let exit_code = Api.Reader.Build.ProcessOutput.exit_code_get r in
+      Capability.call_for_value_exn t method_id request >|= fun r ->
+      let stdout = Results.stdout_get r in
+      let stderr = Results.stderr_get r in
+      let exit_code = Results.exit_code_get r in
       (exit_code, stdout, stderr)
   end
   module Service = struct
-    let proc =
-      ()
-
-    let t =
+    let t exec_fn =
       let module Build = Api.Service.Build in
       Build.local @@ object
         inherit Build.service
@@ -28,12 +25,14 @@ module Build = struct
           let open Build.Shell in
           let cmd = Params.cmd_get params in
           release_param_caps ();
-          let exit_code, stdout, stderr = Worker.build ~cmd in
+          let exit_code, stdout, stderr = exec_fn ~cmd in
           let response, results = Service.Response.create Results.init_pointer in
+          Results.exit_code_set results exit_code;
+          Results.stdout_set results stdout;
+          Results.stderr_set results stderr;
           Service.return response
       end
   end
-  
 end
 
 module Log = struct
@@ -101,20 +100,22 @@ module Register = struct
       Params.msg_set params msg;
       Capability.call_for_value_exn t method_id request >|= Results.reply_get
 
-    let worker ~hostname ~arch ~ncpus t =
+    let worker ~hostname ~arch ~ncpus ~exec t =
       let open Register.Worker in
       let request, params = Capability.Request.create Params.init_pointer in
       Params.hostname_set params hostname;
       Params.arch_set params arch;
       Params.ncpus_set params ncpus;
+      Params.exec_set params (Some exec);
       Capability.call_for_value_exn t method_id request >|= Results.logger_get
   end
 
   module Service = struct
-    let t nodes log_service =
+    let t register_fn log_service =
       let module Register = Api.Service.Register in
       Register.local @@ object
         inherit Register.service
+        
         method ping_impl params release_param_caps =
           let open Register.Ping in
           let msg = Params.msg_get params in
@@ -128,11 +129,15 @@ module Register = struct
           let hostname = Params.hostname_get params in
           let arch = Params.arch_get params in
           let ncpus = Params.ncpus_get params |> Uint32.to_int32 in
+          let exec = Params.exec_get params in
           release_param_caps ();
-          let id = Worker.register ~hostname ~arch ~ncpus nodes in
-          let response, results = Service.Response.create Results.init_pointer in
-          Results.logger_set results (Some log_service);
-          Service.return response
+          match exec with
+          | None -> Service.fail "no exec callback found"
+          | Some exec ->
+            let id = register_fn ~hostname ~arch ~ncpus ~exec in
+            let response, results = Service.Response.create Results.init_pointer in
+            Results.logger_set results (Some log_service); 
+            Service.return response
       end
   end
 end

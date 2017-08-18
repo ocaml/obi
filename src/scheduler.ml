@@ -2,42 +2,41 @@ open Lwt.Infix
 open Capnp_rpc_lwt
 module P = Proto
 
-module Node = struct
-
-  type t = {
-    hostname: string;
-  } [@@deriving sexp]
-
-end
-
-let logger =
-  let close id buf =
-    Fmt.pr "Closed %Lu:\n%s\n---\n" id (Buffer.contents buf)
-  in
-  let append id buf msg =
-    Fmt.pr "Event %Lu: %s\n" id msg
-  in
-  let impl = Memory_log.v ~close ~append () in
-  Proto.Log.Service.t impl
-
+ 
 let serve addr : unit =
-  Lwt_main.run @@ Capnp_rpc_unix.serve ~offer:logger addr
+  let nodes = Worker.v () in
+  let register_fn ~hostname ~arch ~ncpus ~exec =
+    let id, node = Worker.register ~hostname ~arch ~ncpus ~exec nodes in
+    Lwt.async (fun () ->
+      Lwt_unix.sleep 1.0 >>= fun () ->
+      P.Build.Client.shell ~cmd:"sup" node.Worker.exec >>= fun _ ->
+      Lwt.return_unit
+    )
+  in
+  let logger =
+    let close id buf = Fmt.pr "Closed %Lu:\n%s\n---\n" id (Buffer.contents buf) in
+    let append id buf msg = Fmt.pr "Event %Lu: %s\n" id msg in
+    Memory_log.v ~close ~append () in
+  let logger_service = Proto.Log.Service.t logger in
+  let offer = Proto.Register.Service.t register_fn logger_service in
+  Lwt_main.run @@ Capnp_rpc_unix.serve ~offer addr
 
 let connect addr label =
+  let exec = Proto.Build.Service.t Worker.build in
   let module P = Proto.Log.Client in
   Lwt_main.run begin
     Lwt_switch.with_switch @@ fun switch ->
     let l = Capnp_rpc_unix.connect ~switch addr in
-    Logs.info (fun f -> f "Connecting to log service");
-    P.init ~label l >>= fun id ->
-    Fmt.pr "Id: %Lu@." id;
-    let rec send () =
-      Lwt_io.(read stdin) >>= function
-      | "" -> Lwt.return_unit
-      | buf -> P.send ~id ~msg:buf l >>= send
+    Logs.info (fun f -> f "Connecting to service");
+    let reg () =
+      let hostname = label in
+      let arch = "x86_64" in
+      let ncpus = Uint32.of_int 2 in
+      Proto.Register.Client.worker ~hostname ~arch ~ncpus ~exec l >>= function
+      | None -> Lwt_unix.sleep 10.0
+      | Some c -> Lwt_unix.sleep 10.0
     in
-    send () >>= fun () ->
-    P.close ~id l 
+    reg ()
   end
 
 open Cmdliner

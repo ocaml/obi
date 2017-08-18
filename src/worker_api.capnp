@@ -12,10 +12,10 @@ interface Build {
      stderr @1 :Data;
      exitCode @2 :Int32;
   }
-  shell     @0 (cmd :Text) -> (result :ProcessOutput);
+  shell     @0 (cmd :Text) -> ProcessOutput;
 }
 
 interface Register {
   ping      @0 (msg :Text) -> (reply :Text);
-  worker    @1 (hostname :Text, arch :Text, ncpus: UInt32, ) -> (logger :Log);
+  worker    @1 (hostname :Text, arch :Text, ncpus: UInt32, exec :Build) -> (logger :Log);
 }
