@@ -7,7 +7,7 @@ let serve addr : unit =
     let close id log = Fmt.pr "Closed %Lu:\n%s\n---\n" id (Sexplib.Sexp.to_string_hum (Memory_log.sexp_of_log log)) in
     let append id fd buf msg = Fmt.pr "Event %Lu: %s\n" id msg in
     Memory_log.v ~close ~append () in
-  let logger_service = Proto.Log.Service.t logger in
+  let logger_service = Proto.Log.Service.v logger in
   let nodes = Worker.v () in
   let register_fn ~hostname ~arch ~ncpus ~exec =
     let id, node = Worker.register ~hostname ~arch ~ncpus ~exec nodes in
@@ -23,7 +23,7 @@ let serve addr : unit =
     ()
   in
   
-  let offer = Proto.Register.Service.t register_fn logger_service logger in
+  let offer = Proto.Register.Service.v register_fn logger_service logger in
   Lwt_main.run @@ Capnp_rpc_unix.serve ~offer addr
 
 let worker_builder ~label =
