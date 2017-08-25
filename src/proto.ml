@@ -194,7 +194,7 @@ module Register = struct
           release_param_caps ();
           let response, results = Service.Response.create Results.init_pointer in
           let logs = Array.of_list (Memory_log.list logger_impl) in
-          let logs_p = Results.logs_init results (List.length logs) in
+(*          let logs_p = Results.logs_init results (List.length logs) in *)
           Results.logs_set_list results [];
           Service.fail "todo"
 
