@@ -6,10 +6,11 @@ open Capnp_rpc_lwt
 module Build = struct
   module Client = struct
     module Build = Api.Client.Build
-    let shell ~cmd t =
+    let shell ~cmd ~log t =
       let open Build.Shell in
       let request, params = Capability.Request.create Params.init_pointer in
       Params.cmd_set params cmd;
+      Params.log_set params (Some log);
       Capability.call_for_value_exn t method_id request >|= fun r ->
       let stdout = Results.stdout_get r in
       let stderr = Results.stderr_get r in
@@ -24,13 +25,65 @@ module Build = struct
         method shell_impl params release_param_caps =
           let open Build.Shell in
           let cmd = Params.cmd_get params in
+          let log = Params.log_get params in
           release_param_caps ();
-          let exit_code, stdout, stderr = exec_fn ~cmd in
+          let exit_code, stdout, stderr = exec_fn ~log ~cmd in
           let response, results = Service.Response.create Results.init_pointer in
           Results.exit_code_set results exit_code;
           Results.stdout_set results stdout;
           Results.stderr_set results stderr;
           Service.return response
+      end
+  end
+end
+
+module BuildLog = struct
+  module Client = struct
+    module BuildLog = Api.Client.BuildLog
+    let stdout ~msg t =
+      let open BuildLog.Stdout in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.msg_set params msg;
+      Capability.call_for_unit_exn t method_id request
+
+    let stderr ~msg t =
+      let open BuildLog.Stderr in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.msg_set params msg;
+      Capability.call_for_unit_exn t method_id request
+
+    let close t =
+      let open BuildLog.Close in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Capability.call_for_unit_exn t method_id request
+  end
+
+  module Service = struct
+    let v ~label t =
+      let id = Memory_log.init ~label t in
+      let module BuildLog = Api.Service.BuildLog in
+      BuildLog.local @@ object
+        inherit BuildLog.service
+
+        method stdout_impl params release_param_caps =
+          let open BuildLog.Stdout in
+          let msg = Params.msg_get params in
+          release_param_caps ();
+          Memory_log.send ~id ~msg t;
+          Service.return_empty ()
+
+        method stderr_impl params release_param_caps =
+          let open BuildLog.Stderr in
+          let msg = Params.msg_get params in
+          release_param_caps ();
+          Memory_log.send ~id ~msg t;
+          Service.return_empty ()
+
+        method close_impl params release_param_caps =
+          let open BuildLog.Close in
+          release_param_caps ();
+          Memory_log.close ~id t;
+          Service.return_empty ()
       end
   end
 end

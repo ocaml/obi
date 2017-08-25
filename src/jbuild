@@ -4,6 +4,7 @@
   (name scheduler)
   (public_name ciso-scheduler)
   (libraries (capnp-rpc-lwt capnp-rpc-unix rresult cmdliner logs.fmt fmt.tty fmt.cli))
+  (preprocess (pps (ppx_sexp_conv)))
   (flags (:standard -w -53-55))
 ))
 

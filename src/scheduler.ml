@@ -1,29 +1,45 @@
 open Lwt.Infix
 open Capnp_rpc_lwt
 module P = Proto
-
  
 let serve addr : unit =
+  let logger =
+    let close id log = Fmt.pr "Closed %Lu:\n%s\n---\n" id (Sexplib.Sexp.to_string_hum (Memory_log.sexp_of_log log)) in
+    let append id fd buf msg = Fmt.pr "Event %Lu: %s\n" id msg in
+    Memory_log.v ~close ~append () in
+  let logger_service = Proto.Log.Service.t logger in
   let nodes = Worker.v () in
   let register_fn ~hostname ~arch ~ncpus ~exec =
     let id, node = Worker.register ~hostname ~arch ~ncpus ~exec nodes in
-    Lwt.async (fun () ->
+    let job () = Lwt.async (fun () ->
       Lwt_unix.sleep 1.0 >>= fun () ->
-      P.Build.Client.shell ~cmd:"sup" node.Worker.exec >>= fun _ ->
-      Lwt.return_unit
-    )
+      let label = Fmt.strf "%s/%s" hostname arch in
+      let log = Proto.BuildLog.Service.v ~label logger in
+      P.Build.Client.shell ~cmd:"sup" ~log node.Worker.exec >>= fun _ ->
+      Lwt.return_unit)
+    in
+    let _ = job () in
+    let _ = Lwt_unix.sleep 1.0 >>= fun () -> job (); Lwt.return_unit in
+    ()
   in
-  let logger =
-    let close id buf = Fmt.pr "Closed %Lu:\n%s\n---\n" id (Buffer.contents buf) in
-    let append id buf msg = Fmt.pr "Event %Lu: %s\n" id msg in
-    Memory_log.v ~close ~append () in
-  let logger_service = Proto.Log.Service.t logger in
-  let offer = Proto.Register.Service.t register_fn logger_service in
+  
+  let offer = Proto.Register.Service.t register_fn logger_service logger in
   Lwt_main.run @@ Capnp_rpc_unix.serve ~offer addr
 
+let worker_builder ~label =
+  let exec_fn ~log ~cmd =
+    Fmt.pr "exec_fn: %s -> %s\n" label cmd;
+    P.BuildLog.Client.stdout ~msg:"wassup" log >>= fun () ->
+    Lwt_unix.sleep 0.5 >>= fun () ->
+    P.BuildLog.Client.stderr ~msg:"stderr stuff" log >>= fun () ->
+    Lwt_unix.sleep 0.5 >>= fun () ->
+    P.BuildLog.Client.close ~exit_code:0l log
+  in
+  P.Build.Service.v exec_fn
+
 let connect addr label =
-  let exec = Proto.Build.Service.t Worker.build in
-  let module P = Proto.Log.Client in
+  let exec = worker_builder ~label in 
+  let module P = Proto.BuildLog.Client in
   Lwt_main.run begin
     Lwt_switch.with_switch @@ fun switch ->
     let l = Capnp_rpc_unix.connect ~switch addr in
@@ -33,8 +49,8 @@ let connect addr label =
       let arch = "x86_64" in
       let ncpus = Uint32.of_int 2 in
       Proto.Register.Client.worker ~hostname ~arch ~ncpus ~exec l >>= function
-      | None -> Lwt_unix.sleep 10.0
-      | Some c -> Lwt_unix.sleep 10.0
+      | None -> Lwt_unix.sleep 100.0
+      | Some c -> Lwt_unix.sleep 100.0
     in
     reg ()
   end
