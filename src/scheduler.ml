@@ -55,6 +55,15 @@ let connect addr label =
     reg ()
   end
 
+let list_logs addr =
+  Lwt_main.run begin
+    Lwt_switch.with_switch @@ fun switch ->
+    let l = Capnp_rpc_unix.connect ~switch addr in
+    P.Register.Client.list_logs l >>= fun ents ->
+    List.iter (fun (id,label) -> Fmt.pr "%Lu %s\n" id label) ents;
+    Lwt.return_unit
+  end
+
 open Cmdliner
 
 let connect_addr =
@@ -78,12 +87,17 @@ let connect_cmd =
   let doc = "connect to a Cap'n Proto logger service" in
   Term.info "connect" ~doc
 
+let list_cmd =
+  Term.(const list_logs $ connect_addr),
+  let doc = "list all the logs available" in
+  Term.info "list-logs" ~doc
+
 let default_cmd =
   let doc = "a logger service example" in
   Term.(ret (const (`Help (`Pager, None)))),
   Term.info "logger" ~version:"v0.1" ~doc
 
-let cmds = [serve_cmd; connect_cmd]
+let cmds = [serve_cmd; connect_cmd; list_cmd]
 
 let pp_qid f = function
   | None -> ()

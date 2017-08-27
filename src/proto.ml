@@ -158,6 +158,27 @@ module Register = struct
       Params.ncpus_set params ncpus;
       Params.exec_set params (Some exec);
       Capability.call_for_value_exn t method_id request >|= Results.logger_get
+
+    let list_logs t =
+      let open Register.ListLogs in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Capability.call_for_value_exn t method_id request >|= Results.logs_get_list >|=
+      List.map (fun ent ->
+        let id = Api.Reader.Register.LogEntry.id_get ent in
+        let label = Api.Reader.Register.LogEntry.label_get ent in
+        id, label
+      )
+
+    let list_log ~id t =
+      let open Register.ListLog in
+      let request, params = Capability.Request.create Params.init_pointer in
+      Params.id_set params id;
+      Capability.call_for_value_exn t method_id request >|= fun r ->
+      let stdout = Results.stdout_get r in
+      let stderr = Results.stderr_get r in
+      let label = Results.label_get r in
+      stdout, stderr, label 
+
   end
 
   module Service = struct
@@ -194,10 +215,31 @@ module Register = struct
           release_param_caps ();
           let response, results = Service.Response.create Results.init_pointer in
           let logs = Array.of_list (Memory_log.list logger_impl) in
-(*          let logs_p = Results.logs_init results (List.length logs) in *)
-          Results.logs_set_list results [];
-          Service.fail "todo"
+          let num_logs = Array.length logs in
+          let logs_p = Results.logs_init results num_logs in
+          for i = 0 to num_logs - 1 do
+            Capnp.Array.get logs_p i |> fun b ->
+            let id, label = logs.(i) in
+            Api.Builder.Register.LogEntry.id_set b id;
+            Api.Builder.Register.LogEntry.label_set b label
+          done;
+          Service.return response
 
+        method list_log_impl params release_param_caps =
+          let open Register.ListLog in
+          let id = Params.id_get params in
+          release_param_caps ();
+          match Memory_log.get ~id logger_impl with
+          | Error (`Msg m) -> Service.fail "%s" m
+          | Ok log ->
+              let stdout = Buffer.contents log.Memory_log.stdout in
+              let stderr = Buffer.contents log.Memory_log.stderr in
+              let label = log.Memory_log.label in
+              let response, results = Service.Response.create Results.init_pointer in
+              Results.stdout_set results stdout;
+              Results.stderr_set results stderr;
+              Results.label_set results label;
+              Service.return response
       end
   end
 end

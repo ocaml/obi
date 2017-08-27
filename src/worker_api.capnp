@@ -24,4 +24,5 @@ interface Register {
   ping      @0 (msg :Text) -> (reply :Text);
   worker    @1 (hostname :Text, arch :Text, ncpus: UInt32, exec :Build) -> (logger :Log);
   listLogs  @2 () -> (logs: List(LogEntry));
+  listLog   @3 (id :Int64) -> (stdout :Text, stderr:Text, label: Text);
 }
