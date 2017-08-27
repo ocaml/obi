@@ -20,9 +20,11 @@ interface Register {
   struct LogEntry {
     id @0 :Int64;
     label @1:Text;
+    stdout @2: Text;
+    stderr @3: Text;
   }
   ping      @0 (msg :Text) -> (reply :Text);
   worker    @1 (hostname :Text, arch :Text, ncpus: UInt32, exec :Build) -> (logger :Log);
   listLogs  @2 () -> (logs: List(LogEntry));
-  listLog   @3 (id :Int64) -> (stdout :Text, stderr:Text, label: Text);
+  listLog   @3 (id :Int64) -> LogEntry;
 }

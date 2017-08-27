@@ -177,7 +177,8 @@ module Register = struct
       let stdout = Results.stdout_get r in
       let stderr = Results.stderr_get r in
       let label = Results.label_get r in
-      stdout, stderr, label 
+      let status = Memory_log.Completed {exit_code= 0l} in
+      Memory_log.log_v ~stdout ~stderr ~label ~status ()
 
   end
 
