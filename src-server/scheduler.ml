@@ -13,9 +13,10 @@ let serve addr : unit =
     let id, node = Worker.register ~hostname ~arch ~ncpus ~exec nodes in
     let job () = Lwt.async (fun () ->
         Lwt_unix.sleep 1.0 >>= fun () ->
-        let label = Fmt.strf "%s/%s" hostname arch in
+        let label = Fmt.strf "%s/%s" hostname arch in 
         let log = Proto.BuildLog.Service.v ~label logger in
-        P.Build.Client.shell ~cmd:"sup" ~log node.Worker.exec >>= fun _ ->
+        let cmd = "ls -la" in
+        Worker.shell ~cmd ~log node >>= fun () ->
         Lwt.return_unit)
     in
     let _ = job () in
