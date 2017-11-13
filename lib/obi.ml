@@ -1,8 +1,4 @@
-open Astring
-open Rresult
 open Sexplib.Conv
-module D = Dockerfile_distro
-module OV = Ocaml_version
 
 module Ocaml_version = struct
   include Ocaml_version
