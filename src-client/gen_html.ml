@@ -39,7 +39,43 @@ let write_html dir html =
   Logs.info (fun l -> l "Generating: %a" Fpath.pp dir);
   OS.File.write dir (Soup.to_string html)
 
-let generate_index_by_version index =
+let calculate_stats_for_pkgs (pkgs:Obi.pkg list) =
+  let open Obi in
+  let h = Hashtbl.create 1000 in
+  List.fold_left (fun acc pkg -> List.map snd pkg.versions @ acc) [] pkgs |>
+  List.flatten |>
+  List.iter (fun (ov, res) ->
+    begin if not (Hashtbl.mem h ov) then Hashtbl.add h ov (ref 0, ref 0) end;
+    let ok, fail = Hashtbl.find h ov in
+    if res.status = `Exited 0 then incr ok else incr fail
+  ) |> fun () ->
+  Hashtbl.fold (fun ov (ok,fail) acc -> (ov, (!ok,!fail))::acc) h [] |>
+  List.sort (fun (a,_) (b,_) -> OV.compare a b)
+
+let select_arch_distro ~arch ~distro batch =
+  let open Obi in
+  List.fold_left (fun acc (arch,distro,v) ->
+    match arch,distro with
+    | arch',distro' when arch'=arch && distro=distro' -> v::acc
+    | _ -> acc) [] batch.res |>
+  function
+  | [hd] -> hd
+  | [] -> failwith "No results found for x86-64/debian-9"
+  | _ -> failwith "Multiple results found for x86-64/debian-9"
+
+let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
+  (* TODO Factor out arch/distro selection *)
+  let e = create_element elem in
+  append_child e (create_text "Package build stats per different OCaml compiler are: ");
+  append_child e (create_element "br");
+  calculate_stats_for_pkgs pkgs |>
+  List.iter (fun (ov,(ok,fail)) ->
+    Fmt.strf "OCaml %a (<span class=\"text-success\">%d</a> / <span class=\"text-danger\">%d</span>)<br />" OV.pp ov ok fail |> fun s ->
+    append_child e (parse s)
+  ) |> fun () ->
+  e
+  
+let generate_index_by_version index batches =
   let idx = idx () in
   let content =
     let ul = create_element ~classes:["list-group"] "div" in
@@ -69,6 +105,8 @@ let generate_index_by_version index =
       append_child li2 tr;
       let s = create_element ~class_:"mb-1" ~inner_text:subj "p" in
       append_child li s;
+      let pkgs = (List.find (fun b -> b.Obi.rev = rev) batches) |> select_arch_distro ~arch:(`X86_64) ~distro:(`Debian `V9) in
+      append_child li (html_stats_for_pkgs "small" pkgs);
     ) index.Obi.revs;
     ul
   in
@@ -90,7 +128,7 @@ let generate_index_by_version index =
         (create_element ~classes:["breadcrumb-item"; "active"] ~inner_text:"By Compiler Version" "li");
       e
     in
-    let e = Soup.parse (Fmt.strf "<p>Snapshots of the opam <a href=\"https://github.com/ocaml/opam-repository\">package repository</a> are regularly built against recent versions of the OCaml compiler. This page lists the most recent builds, sorted by the git revision of the repository.</p>") in
+    let e = Soup.parse (Fmt.strf "<h3>Builds Across Multiple Compiler Versions</h3><p>Snapshots of the opam <a href=\"https://github.com/ocaml/opam-repository\">package repository</a> are regularly built against recent versions of the OCaml compiler, including . This page lists the most recent builds, sorted by the git revision of the repository.</p>") in
     append_child nav e ;
     nav
   in
@@ -190,43 +228,37 @@ let generate_by_version_for_rev ~rev ~distro ~arch logs_uri res =
       let ol = create_element ~class_:"breadcrumb" "ol" in
       append_child e ol ;
       append_child ol
-        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../.." "Bulk Builds"); e);
+        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../../index.html" "Bulk Builds"); e);
       append_child ol
-        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../" "By Compiler Version"); e);
+        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../index.html" "By Compiler Version"); e);
       append_child ol
         (create_element ~classes:["breadcrumb-item"; "active"]
            ~attributes:[("aria-current", "page")] ~inner_text:short_hash "li") ;
       e
     in
     let e = Soup.parse (Fmt.strf "<p>These are the <a href=\"https://opam.ocaml.org/\">opam</a> bulk build results for the packages at <a href=\"https://github.com/ocaml/opam-repository\">opam-repository</a> revision <a href=\"https://github.com/ocaml/opam-repository/commit/%s\">%s</a>, built using %s on an %s architecture.</p>" short_hash short_hash (D.human_readable_string_of_distro distro) (OV.string_of_arch arch)) in
-    append_child nav e ;
+    append_child nav e;
+    append_child nav (html_stats_for_pkgs "p" res);
     nav
   in
   replace (idx $ "div.intro") intro ;
   Ok idx
 
 let generate logs_uri meta_dir logs_dir html_dir () =
-  load_index meta_dir |> fun idx ->
-  let revs = List.fold_left (fun a (rev,_,_) -> rev::a) [] idx.Obi.revs in
-  C.iter (fun rev ->
-    load_batch meta_dir rev |> fun batch ->
-    List.fold_left (fun acc (arch,distro,v) ->
-      match arch,distro with
-      |`X86_64,`Debian `V9 -> v::acc
-      |_ -> acc) [] batch.Obi.res |>
-    function
-    | [hd] ->
-        let rev = batch.Obi.rev in
-        generate_by_version_for_rev ~rev ~distro:(`Debian `V9) ~arch:`X86_64 logs_uri hd >>= fun idx ->
-        let srev = String.with_range ~len:8 rev in
-        let dir = Fpath.(html_dir / "by-version" / srev) in
-        OS.Dir.create ~path:true dir >>= fun _ ->
-        let f = Fpath.(dir / "index.html") in
-        write_html f idx
-    | [] -> Error (`Msg "No results found for x86-64/debian-9")
-    | _ -> Error (`Msg "Multiple results found for x86-64/debian-9")
-  ) revs >>= fun () ->
-  let index = Sexplib.Sexp.load_sexp (Fpath.(to_string (meta_dir / "index.sxp"))) |> Obi.index_of_sexp in
+  load_index meta_dir |> fun index ->
+  List.map (fun (rev,_,_) -> load_batch meta_dir rev) index.Obi.revs |> fun batches ->
+  C.iter (fun batch ->
+     let rev = batch.Obi.rev in
+     let arch = `X86_64 in
+     let distro = `Debian `V9 in
+     select_arch_distro ~arch ~distro batch |>
+     generate_by_version_for_rev ~rev ~distro ~arch logs_uri >>= fun idx ->
+     let srev = String.with_range ~len:8 rev in
+     let dir = Fpath.(html_dir / "by-version" / srev) in
+     OS.Dir.create ~path:true dir >>= fun _ ->
+     let f = Fpath.(dir / "index.html") in
+     write_html f idx
+  ) batches >>= fun () ->
   let revs = List.sort (fun (_,a,_) (_,b,_) -> compare b a) index.Obi.revs in
   let index = { index with Obi.revs = revs } in
   let latest_rev = List.hd revs |> fun (r,_,_) -> String.with_range ~len:8 r in
@@ -234,5 +266,5 @@ let generate logs_uri meta_dir logs_dir html_dir () =
   OS.File.delete ~must_exist:false latest_link >>= fun () ->
   (* unlink needed due to https://github.com/dbuenzli/bos/issues/75 *)
   OS.Path.symlink ~force:true ~target:(Fpath.v latest_rev) latest_link >>= fun () ->
-  generate_index_by_version index >>= fun html ->
+  generate_index_by_version index batches >>= fun html ->
   write_html Fpath.(html_dir / "by-version" / "index.html") html
