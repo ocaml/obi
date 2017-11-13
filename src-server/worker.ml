@@ -10,7 +10,7 @@ type 'a node = {
 type 'a t = {
   nodes: (int, 'a node) Hashtbl.t;
   mutable last_id : int;
-} [@@deriving sexp]
+}
 
 let v () =
   let nodes = Hashtbl.create 7 in

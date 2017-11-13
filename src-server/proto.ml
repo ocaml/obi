@@ -46,14 +46,14 @@ module Log = struct
           let id = Params.id_get params in
           release_param_caps ();
           Fmt.pr "send_impl: %Lu %s\n%!" id msg;
-          Memory_log.(send ~fd:Stdout ~id ~msg impl);
+          Memory_log.(send ~id ~msg impl);
           Service.return_empty ()
 
         method close_impl params release_param_caps =
           let open Log.Close in
           let id = Params.id_get params in
           release_param_caps ();
-          Memory_log.(close ~exit_code:1l ~id impl);
+          Memory_log.(close ~id impl);
           Service.return_empty ()
       end
   end
@@ -92,21 +92,21 @@ module BuildLog = struct
           let open BuildLog.Stdout in
           let msg = Params.msg_get params in
           release_param_caps ();
-          Memory_log.(send ~fd:Stdout ~id ~msg t);
+          Memory_log.(send ~id ~msg t);
           Service.return_empty ()
 
         method stderr_impl params release_param_caps =
           let open BuildLog.Stderr in
           let msg = Params.msg_get params in
           release_param_caps ();
-          Memory_log.(send ~fd:Stderr ~id ~msg t);
+          Memory_log.(send ~id ~msg t);
           Service.return_empty ()
 
         method close_impl params release_param_caps =
           let open BuildLog.Close in
           let exit_code = Params.exit_code_get params in
           release_param_caps ();
-          Memory_log.close ~exit_code ~id t;
+          Memory_log.close ~id t;
           Service.return_empty ()
       end
   end
@@ -153,9 +153,10 @@ module Register = struct
     let worker ~hostname ~arch ~ncpus ~exec t =
       let open Register.Worker in
       let request, params = Capability.Request.create Params.init_pointer in
-      Params.hostname_set params hostname;
-      Params.arch_set params arch;
-      Params.ncpus_set params ncpus;
+      Params.node_get params |> fun node ->
+      Api.Builder.Register.NodeEntry.hostname_set node hostname;
+      Api.Builder.Register.NodeEntry.arch_set node arch;
+      Api.Builder.Register.NodeEntry.ncpus_set node ncpus;
       Params.exec_set params (Some exec);
       Capability.call_for_value_exn t method_id request >|= Results.logger_get
 
@@ -164,10 +165,10 @@ module Register = struct
       let request, params = Capability.Request.create Params.init_pointer in
       Capability.call_for_value_exn t method_id request >|= Results.logs_get_list >|=
       List.map (fun ent ->
-        let id = Api.Reader.Register.LogEntry.id_get ent in
-        let label = Api.Reader.Register.LogEntry.label_get ent in
-        id, label
-      )
+          let id = Api.Reader.Register.LogEntry.id_get ent in
+          let label = Api.Reader.Register.LogEntry.label_get ent in
+          id, label
+        )
 
     let list_log ~id t =
       let open Register.ListLog in
@@ -187,7 +188,7 @@ module Register = struct
       let module Register = Api.Service.Register in
       Register.local @@ object
         inherit Register.service
-        
+
         method ping_impl params release_param_caps =
           let open Register.Ping in
           let msg = Params.msg_get params in
@@ -198,9 +199,10 @@ module Register = struct
 
         method worker_impl params release_param_caps =
           let open Register.Worker in
-          let hostname = Params.hostname_get params in
-          let arch = Params.arch_get params in
-          let ncpus = Params.ncpus_get params |> Uint32.to_int32 in
+          let node = Params.node_get params in
+          let hostname = Api.Reader.Register.NodeEntry.hostname_get node in
+          let arch = Api.Reader.Register.NodeEntry.arch_get node in
+          let ncpus = Api.Reader.Register.NodeEntry.ncpus_get node |> Uint32.to_int32 in
           let exec = Params.exec_get params in
           release_param_caps ();
           match exec with
@@ -233,14 +235,30 @@ module Register = struct
           match Memory_log.get ~id logger_impl with
           | Error (`Msg m) -> Service.fail "%s" m
           | Ok log ->
-              let stdout = Buffer.contents log.Memory_log.stdout in
-              let stderr = Buffer.contents log.Memory_log.stderr in
-              let label = log.Memory_log.label in
-              let response, results = Service.Response.create Results.init_pointer in
-              Results.stdout_set results stdout;
-              Results.stderr_set results stderr;
-              Results.label_set results label;
-              Service.return response
+            let stdout = Buffer.contents log.Memory_log.stdout in
+            let stderr = Buffer.contents log.Memory_log.stderr in
+            let label = log.Memory_log.label in
+            let response, results = Service.Response.create Results.init_pointer in
+            Results.stdout_set results stdout;
+            Results.stderr_set results stderr;
+            Results.label_set results label;
+            Service.return response
+
+        method list_workers_impl params release_param_caps =
+          let open Register.ListWorkers in
+          release_param_caps ();
+          let response, results = Service.Response.create Results.init_pointer in
+          let nodes = [||] in
+          let num_nodes = Array.length nodes in
+          let nodes_p = Results.nodes_init results num_nodes in
+          for i = 0 to num_nodes - 1 do
+            Capnp.Array.get nodes_p i |> fun n ->
+            let w = nodes.(i) in
+            Api.Builder.Register.NodeEntry.arch_set n w.Worker.arch;
+            Api.Builder.Register.NodeEntry.hostname_set n w.Worker.hostname;
+            Api.Builder.Registre.NodeEntry.ncpus_set n w.Worker.ncpus;
+          done;
+          Service.return response
       end
   end
 end
