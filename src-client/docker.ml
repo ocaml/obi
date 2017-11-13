@@ -387,6 +387,8 @@ module Phases = struct
     in
     Bos.OS.File.read_lines Fpath.(res_dir / "pkgs.txt")
     >>= fun pkgs ->
+    Random.self_init ();
+    List.map (fun a -> (Random.bits ()), a) pkgs |> List.sort compare |> List.map snd |> fun pkgs ->
     let mode = `Remote (`Controlmaster, hosts) in
     let cmd =
       Cmd.(v "./obi-docker" % "phase5-build" %% of_list opts % "-vv" % "{}")
