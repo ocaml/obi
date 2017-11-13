@@ -22,6 +22,23 @@ let days_since date =
     | Some d -> d in
   Fmt.strf "%a" Ptime.Span.pp span
 
+let load_batch meta_dir rev =
+  (* TODO use R.trap_exn *)
+  Fpath.(meta_dir / "revs" / (rev ^ ".sxp")) |>
+  Fpath.to_string |>
+  Sexplib.Sexp.load_sexp |>
+  Obi.batch_of_sexp
+
+let load_index meta_dir =
+  Fpath.(meta_dir / "index.sxp") |>
+  Fpath.to_string |>
+  Sexplib.Sexp.load_sexp |>
+  Obi.index_of_sexp
+
+let write_html dir html =
+  Logs.info (fun l -> l "Generating: %a" Fpath.pp dir);
+  OS.File.write dir (Soup.to_string html)
+
 let generate_index_by_version index =
   let idx = idx () in
   let content =
@@ -188,15 +205,11 @@ let generate_by_version_for_rev ~rev ~distro ~arch logs_uri res =
   replace (idx $ "div.intro") intro ;
   Ok idx
 
-let write_html dir html =
-  Logs.info (fun l -> l "Generating: %a" Fpath.pp dir);
-  OS.File.write dir (Soup.to_string html)
-
 let generate logs_uri meta_dir logs_dir html_dir () =
-  OS.Dir.contents Fpath.(meta_dir / "revs") >>=
-  C.iter (fun rev_file ->
-    Sexplib.Sexp.load_sexp (Fpath.to_string rev_file) |> Obi.batch_of_sexp |> fun batch ->
-    (* Generate the by-ocaml-version pages *)
+  load_index meta_dir |> fun idx ->
+  let revs = List.fold_left (fun a (rev,_,_) -> rev::a) [] idx.Obi.revs in
+  C.iter (fun rev ->
+    load_batch meta_dir rev |> fun batch ->
     List.fold_left (fun acc (arch,distro,v) ->
       match arch,distro with
       |`X86_64,`Debian `V9 -> v::acc
@@ -212,11 +225,14 @@ let generate logs_uri meta_dir logs_dir html_dir () =
         write_html f idx
     | [] -> Error (`Msg "No results found for x86-64/debian-9")
     | _ -> Error (`Msg "Multiple results found for x86-64/debian-9")
-  ) >>= fun () ->
+  ) revs >>= fun () ->
   let index = Sexplib.Sexp.load_sexp (Fpath.(to_string (meta_dir / "index.sxp"))) |> Obi.index_of_sexp in
   let revs = List.sort (fun (_,a,_) (_,b,_) -> compare b a) index.Obi.revs in
   let index = { index with Obi.revs = revs } in
   let latest_rev = List.hd revs |> fun (r,_,_) -> String.with_range ~len:8 r in
-  OS.Path.symlink ~force:true ~target:(Fpath.v latest_rev) Fpath.(html_dir / "by-version" / "latest") >>= fun () ->
+  let latest_link = Fpath.(html_dir / "by-version" / "latest") in
+  OS.File.delete ~must_exist:false latest_link >>= fun () ->
+  (* unlink needed due to https://github.com/dbuenzli/bos/issues/75 *)
+  OS.Path.symlink ~force:true ~target:(Fpath.v latest_rev) latest_link >>= fun () ->
   generate_index_by_version index >>= fun html ->
   write_html Fpath.(html_dir / "by-version" / "index.html") html
