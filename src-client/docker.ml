@@ -9,12 +9,10 @@ open Bos
 open Rresult
 open R.Infix
 
-let arch_to_docker = function `X86_64 -> "amd64" | `Aarch64 -> "arm64"
-
 let bulk_results_dir ~opam_repo_rev ~arch ~ov ~distro logs_dir =
   D.tag_of_distro distro
   |> fun distro ->
-  arch_to_docker arch
+  OV.string_of_arch arch
   |> fun arch ->
   OV.to_string ov
   |> fun ov -> Fpath.(logs_dir / opam_repo_rev / arch / distro / ov)
@@ -100,7 +98,7 @@ module Phases = struct
 
   (* Generate base opam binaries for all distros *)
   let phase1 {cache; push; build; arch; staging_hub_id; build_dir; logs_dir} () =
-    let arch_s = arch_to_docker arch in
+    let arch_s = OV.string_of_arch arch in
     let prefix = Fmt.strf "phase1-%s" arch_s in
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
@@ -136,7 +134,7 @@ module Phases = struct
           let platforms =
             D.distro_arches distro
             |> List.map (fun arch ->
-                   let arch = arch_to_docker arch in
+                   let arch = OV.string_of_arch arch in
                    let image =
                      Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id tag arch
                    in
@@ -184,7 +182,7 @@ module Phases = struct
       ; prod_hub_id
       ; build_dir
       ; logs_dir } () =
-    let arch_s = arch_to_docker arch in
+    let arch_s = OV.string_of_arch arch in
     let prefix = Fmt.strf "phase3-ocaml-%s" arch_s in
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
@@ -227,7 +225,7 @@ module Phases = struct
             let platforms =
               D.distro_arches distro
               |> List.map (fun arch ->
-                     let arch = arch_to_docker arch in
+                     let arch = OV.string_of_arch arch in
                      let image =
                        Fmt.strf "%s:%s-ocaml-linux-%s" staging_hub_id tag arch
                      in
@@ -246,7 +244,7 @@ module Phases = struct
                   D.distro_arches distro
                   |> List.filter (fun a -> OV.(Has.arch a ov))
                   |> List.map (fun arch ->
-                         let arch = arch_to_docker arch in
+                         let arch = OV.string_of_arch arch in
                          let image =
                            Fmt.strf "%s:%s-ocaml-%a-linux-%s" staging_hub_id
                              tag OV.pp ov arch
@@ -273,7 +271,7 @@ module Phases = struct
 
   let phase5_prefix ~distro ~ov ~arch ~opam_repo_rev =
     Fmt.strf "base-linux-%s-%s-%s-%s" (D.tag_of_distro distro)
-      (OV.to_string ~sep:'-' ov) (arch_to_docker arch) opam_repo_rev
+      (OV.to_string ~sep:'-' ov) (OV.string_of_arch arch) opam_repo_rev
 
 
   let phase5_tag ~staging_hub_id ~distro ~ov ~arch ~opam_repo_rev =
