@@ -22,43 +22,6 @@ let if_opt opt fn = if opt then fn () else Ok ()
 
 let if_opt_m def opt fn = opt >>= function true -> fn () | false -> Ok def
 
-module Gen = struct
-  open Dockerfile
-
-  let bulk_build distro arch prod_hub_id distro ocaml_version () =
-    let ov_base = OV.(to_string (with_variant ocaml_version None)) in
-    O.header prod_hub_id
-      (Fmt.strf "%s-ocaml-%s" (D.tag_of_distro distro) ov_base)
-    (* TODO do opam_repo_tag once we have a v2 opam-repo branch so we can pull *)
-    @@ run "opam switch %s" (OV.to_string ocaml_version)
-    @@ env [("OPAMYES", "1"); ("OPAMVERBOSE", "1"); ("OPAMJOBS", "2")]
-    (* TODO This is temporary until we can pull from a 2.0 branch *)
-    @@ workdir "/home/opam/opam-repository" @@ run "git checkout master"
-    @@ run "git pull origin master"
-    @@ run "git rev-parse HEAD > /home/opam/opam-repo-rev"
-    @@ run "opam admin upgrade" @@ run "git branch -D v2"
-    @@ run "git checkout -b v2" @@ run "git add ."
-    @@ run "git commit -m sync -a"
-    @@ run
-         "opam pin add depext https://github.com/AltGr/opam-depext.git#opam-2-beta4"
-    @@ run "opam depext -uiy jbuilder ocamlfind"
-    |> fun dfile -> [("base", dfile)]
-
-
-  let multiarch_manifest ~target ~platforms =
-    let ms =
-      List.map
-        (fun (image, arch) ->
-          Fmt.strf
-            "  -\n    image: %s\n    platform:\n      architecture: %s\n      os: linux"
-            image arch)
-        platforms
-      |> String.concat "\n"
-    in
-    Fmt.strf "image: %s\nmanifests:\n%s" target ms
-
-end
-
 type copts =
   { staging_hub_id: string
   ; prod_hub_id: string
@@ -140,7 +103,7 @@ module Phases = struct
                    in
                    (image, arch) )
           in
-          Gen.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
+          O.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
         D.active_distros
     in
     C.iter (fun (t, m) -> Bos.OS.File.write (yaml_file t) m) yamls
@@ -232,7 +195,7 @@ module Phases = struct
                      (image, arch) )
             in
             let tag = Fmt.strf "%s-ocaml" tag in
-            Gen.multiarch_manifest ~target ~platforms |> fun m -> (tag, m)
+            O.multiarch_manifest ~target ~platforms |> fun m -> (tag, m)
           in
           let each_ocaml =
             List.map
@@ -252,7 +215,7 @@ module Phases = struct
                          (image, arch) )
                 in
                 let tag = Fmt.strf "%s-ocaml-%a" tag OV.pp ov in
-                Gen.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
+                O.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
               OV.Releases.recent_major
           in
           mega_ocaml :: each_ocaml)
@@ -293,7 +256,7 @@ module Phases = struct
     let prefix = phase5_prefix ~distro ~ov ~arch ~opam_repo_rev:"setup" in
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
-    let dfiles = Gen.bulk_build distro arch prod_hub_id distro ov () in
+    let dfiles = O.bulk_build prod_hub_id distro ov () in
     G.generate_dockerfiles ~crunch:false build_dir dfiles
     >>= fun () ->
     if_opt build
