@@ -391,7 +391,7 @@ module Phases = struct
     >>= fun pkgs ->
     let mode = `Remote (`Controlmaster, hosts) in
     let cmd =
-      Cmd.(v "./ocaml-docker" % "phase5-build" %% of_list opts % "-vv" % "{}")
+      Cmd.(v "./obi-docker" % "phase5-build" %% of_list opts % "-vv" % "{}")
     in
     C.Parallel.run ~mode ~retries:1 logs_dir "03-cluster" cmd pkgs
     >>= fun _ -> Ok ()
