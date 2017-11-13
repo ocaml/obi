@@ -62,7 +62,7 @@ let gather_logs meta_dir logs_dir input_dir () =
     ) arches >>= fun res ->
     List.flatten res |> fun res ->
     let batch = { Obi.rev; res } in
-    OS.Dir.create ~path:true meta_dir >>= fun _ ->
+    OS.Dir.create ~path:true Fpath.(meta_dir / "revs")  >>= fun _ ->
     OS.File.write Fpath.(meta_dir / "revs" / (rev ^ ".sxp")) (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
   ) revs
 
