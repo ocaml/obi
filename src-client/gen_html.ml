@@ -7,10 +7,29 @@ open Bos
 open Rresult
 open R.Infix
 
+let top_navbar () =
+  let e = create_element ~classes:["navbar";"fixed-top";"navbar-expand";"navbar-dark";"bg-dark"] "nav" in
+  append_child e (create_element ~inner_text:"Obi" ~class_:"navbar-brand" ~attributes:["href","http://obi.ocamllabs.io/"] "a");
+  let d = create_element ~classes:["collapse;";"navbar-collapse"] "div" in
+  append_child e d;
+  let ul = create_element ~classes:["navbar-nav";"mr-auto"] "ul" in
+  append_child d ul;
+  append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/"] ~inner_text:"Home" "a"); e);
+  append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/triage/"] ~inner_text:"Triage" "a"); e);
+  append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","#"] ~inner_text:"Logs" "a"); e);
+  e
+
+
 let idx () =
-  let css = "body { padding: 0.5rem; }" in
+  let nav = top_navbar () in
+  let css = "body { padding-top: 3rem; }" in
   Fmt.strf
-    "\n<!doctype html>\n<html lang=\"en\">\n  <head>\n    <title class=\"template\"></title>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css\" integrity=\"sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb\" crossorigin=\"anonymous\">\n  <style>%s</style></head>\n  <body>\n    <main role=\"main\" class=\"container\">\n    <div class=\"col-9\">\n    <div class=\"row\">\n   <div class=\"intro\"></div> <div class=\"template\"></div>\n    </div>\n    </div>\n    </main>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js\" integrity=\"sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ\" crossorigin=\"anonymous\"></script>\n  </body>\n</html>\n" css |> parse
+    "\n<!doctype html>\n<html lang=\"en\">\n  <head>\n    <title class=\"template\"></title>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css\" integrity=\"sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb\" crossorigin=\"anonymous\">\n  <style>%s</style></head>\n  <body>\n  <div class=\"container\"><nav></nav></div> <br /> <main role=\"main\" class=\"container\">\n    <div class=\"col-9\">\n    <div class=\"row\">\n   <div class=\"intro\"></div> <div class=\"template\"></div>\n    </div>\n    </div>\n    </main>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js\" integrity=\"sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ\" crossorigin=\"anonymous\"></script>\n  </body>\n</html>\n" css |> parse |> fun b ->
+  replace (b $ "nav") nav;
+  b
+
+let html_id_of_pkg_name pkg version =
+  Fmt.strf "pkg-%s-%s" pkg (String.map (function |'.' -> '-'|x ->x) version)
 
 let href href inner_text =
   create_element ~attributes:[("href", href)] ~inner_text "a"
@@ -67,49 +86,79 @@ let text_safe_string_error_406 pkgs =
   ) |>
   String.concat ~sep:", "
 
-let html_safe_string_error_406 pkgs = 
-  let ul = create_element "ul" in
-  safe_string_errors_406 pkgs |>
+let html_flambda_error_406 rev pkgs =
+  let ul = create_element ~classes:["list-unstyled";"row"] "ul" in
+  let srev = String.with_range ~len:8 rev in
+  flambda_errors_406 pkgs |>
   List.iter (fun (name, last_broken, versions) ->
     let e =
-      String.concat ~sep:", " versions |>
+      List.map (fun v -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">%s</a>" srev (html_id_of_pkg_name name v) v) versions |>
+      String.concat ~sep:", " |>
       Fmt.strf "<b %s>%s</b>: %s" (if last_broken then "class=\"text-danger\"" else "") name |>
       parse in
-    let li = create_element "li" in
+    let li = create_element ~classes:["col-6"] "li" in
     append_child li e;
     append_child ul li
   ) |> fun e ->
   ul
 
+let html_safe_string_error_406 rev pkgs = 
+  let ul = create_element ~classes:["list-unstyled";"row"] "ul" in
+  let srev = String.with_range ~len:8 rev in
+  safe_string_errors_406 pkgs |>
+  List.iter (fun (name, last_broken, versions) ->
+    let e =
+      List.map (fun v -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">%s</a>" srev (html_id_of_pkg_name name v) v) versions |>
+      String.concat ~sep:", " |>
+      Fmt.strf "<b %s>%s</b>: %s" (if last_broken then "class=\"text-danger\"" else "") name |>
+      parse in
+    let li = create_element ~classes:["col-6"] "li" in
+    append_child li e;
+    append_child ul li
+  ) |> fun e ->
+  ul
+
+let generate_triage index batches =
+  let idx = idx () in
+  let rev = index.Obi.most_recent_rev in
+  let srev = String.with_range ~len:8 rev in
+  let intro =
+    let e = create_element "div" in
+    append_child e (create_element ~inner_text:"Triaging Build Failures" "h2");
+    let foo = Fmt.strf "<p>We run analyses over the results of the bulk builds to correct for feature changes across OCaml compiler versions.  This page lists the active efforts that could use your help.  The full logs for the triage efforts here can be found at <a href=\"/by-version/%s/index.html\">by-version/%s</a>.</p>" srev srev |> parse in
+    append_child e foo;
+    append_child e (create_element ~inner_text:"OCaml 4.06.0 safe-string" ~id:"safe-string" "h4");
+    let inner_text = "We have just released OCaml 4.06.0, with the safe-string feature.  The support was added via an optional command line flag across a couple of years to make strings immutable, and now the 4.06 release turns this on by default.  This has resulted in a number of package regressions which need to be fixed by releasing a new package which supports the feature, and by constraining older releases in opam to not be selected for compiler revisions 4.06.0 or greater." in
+    append_child e (create_element ~inner_text "p");
+    let inner_text = "In the list below, the red indicates that the latest version of the package is still broken with 4.06.0 as well.  We still need to fix older packages, but it is urgent to fix the immediate build breakages that are red." in
+    append_child e (create_element ~inner_text "p");
+    append_child e (html_safe_string_error_406 rev (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
+    append_child e (create_element ~inner_text:"OCaml 4.06.0 flambda" ~id:"flambda" "h4");
+    let inner_text = "Flambda is an experimental inliner for OCaml that should speed up programs. There should never be a program that fails with flambda and that works with normal OCaml, so this triage is highlighting failures where this is currently the case." in
+    append_child e (create_element ~inner_text "p");
+    append_child e (html_flambda_error_406  rev (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
+    e
+  in
+  let title ="Opam bulk build results" in
+  replace (idx $ "title.template") (create_element ~inner_text:title "title") ;
+  replace (idx $ "div.intro") intro;
+  Ok idx
+
+
 let generate_root_index index batches =
   let idx = idx () in
-  let (rev,_,_) = List.hd index.Obi.revs in
-  let nav =
-      let e =
-        create_element
-          ~attributes:[("aria-label", "breadcrumb"); ("role", "navigation")]
-          "nav"
-      in
-      let ol = create_element ~class_:"breadcrumb" "ol" in
-      append_child e ol ;
-      append_child ol
-        (create_element ~inner_text:"Bulk Builds" ~classes:["breadcrumb-item"; "active"] "li");
-      e
-  in
   let intro =
-    let e = nav in
-    append_child e (create_element ~inner_text:"Opam package builds" "h2");
+    let e = create_element "div" in
+    append_child e (create_element ~inner_text:"OCaml build infrastructure" "h2");
     let inner_text = "This site contains regular bulk builds of the opam package repository." in
     append_child e (create_element ~inner_text "p");
     let foo = Fmt.strf "<ul><li><b><a href=\"by-version/index.html\">Logs by Compiler Version</a></b>: contains regular snapshots of the full repository, built on Debian-9/x86_64 across recent OCaml compiler releases.</li><li><b>Logs by Distro</b>: Many Linux variants are built using containers, and these build logs help check portability of a release. <i>(coming soon)</i></li><li><b>By CPU architecture:</b> in addition to x86_64, we are also working on arm64 and ppc64le logs. <i>(coming soon)</i> </ul>" |> parse in
     append_child e foo;
     append_child e (create_element ~inner_text:"How to Contribute" "h3");
-    let inner_text = "Your contributions and help are very welcome to improve the state of the opam package database." in
+    let inner_text = "Your contributions and help are very welcome to improve the state of the opam package database.  Anyone can submit a pull request to the package repository to improve the metadata." in
     append_child e (create_element ~inner_text "p");
-    append_child e (create_element ~inner_text:"OCaml 4.06.0 safe-string" "h4");
-    let inner_text = "We have just released OCaml 4.06.0, with the safe-string feature.  The support was added via an optional command line flag across a couple of years to make strings immutable, and now the 4.06 release turns this on by default.  This has resulted in a number of package regressions which need to be fixed by releasing a new package which supports the feature, and by constraining older releases in opam to not be selected for compiler revisions 4.06.0 or greater.  The list is:" in
-    append_child e (create_element ~inner_text "p");
-    append_child e (html_safe_string_error_406 (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
+    let foo = Fmt.strf "<ul><li><b><a href=\"triage.html#safe-string\">4.06 safe-string migration</a></b> concerns moving the OCaml packages to support immutable strings, which are the new default in OCaml 4.06.0.</li><li><b><a href=\"triage.html#flambda\">flambda</a> looks for packages that do not compile using the experimental new flambda inliner.</li></ul>" |> parse in
+    append_child e foo;
     e
   in
   let title ="Opam bulk build results" in
@@ -235,7 +284,7 @@ let generate_by_version_for_rev ~rev ~distro ~arch logs_uri res =
         (fun pkg_version ->
           let r = List.assoc pkg_version pkg.versions in
           let vrow = create_element "tr" in
-          append_child vrow (create_element ~inner_text:pkg_version "td") ;
+          append_child vrow (create_element ~id:(html_id_of_pkg_name pkg_name pkg_version) ~inner_text:pkg_version "td") ;
           append_child row vrow ;
           List.iter
             (fun ov ->
@@ -311,4 +360,6 @@ let generate logs_uri meta_dir logs_dir html_dir () =
   generate_index_by_version index batches >>= fun html ->
   write_html Fpath.(html_dir / "by-version" / "index.html") html >>= fun () ->
   generate_root_index index batches >>= fun html ->
-  write_html Fpath.(html_dir / "index.html") html
+  write_html Fpath.(html_dir / "index.html") html >>= fun () ->
+  generate_triage index batches >>= fun html ->
+  write_html Fpath.(html_dir / "triage.html") html

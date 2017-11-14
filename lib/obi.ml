@@ -120,6 +120,22 @@ module Analysis = struct
     |> List.filter (fun (name, latest_broken, versions) -> versions <> [])
     |> List.sort (fun (a,_,_) (b,_,_) -> compare a b)
 
+  (* TODO combine with safe string *)
+  let flambda_errors_406 pkgs =
+    let ov1 = OV.of_string "4.06.0" in
+    let ov2 = OV.of_string "4.06.0+flambda" in
+    partition_two_ocaml_versions pkgs ov1 ov2
+    |> List.map (fun (name, lv, res) ->
+           List.fold_left
+             (fun acc (version, cl) ->
+               match cl with `Fail, `Ok -> version :: acc | _ -> acc)
+             [] res
+           |> fun r -> (name, lv, r) )
+    |> List.map (fun (name, lv, versions) ->
+         let latest_broken = List.mem lv versions in
+         (name, latest_broken, versions) )
+    |> List.filter (fun (name, latest_broken, versions) -> versions <> [])
+    |> List.sort (fun (a,_,_) (b,_,_) -> compare a b)
 end
 
 type analysis = {safe_string_errors: unit (* TODO *)} [@@deriving sexp]
