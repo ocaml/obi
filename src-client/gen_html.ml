@@ -16,7 +16,7 @@ let top_navbar () =
   append_child d ul;
   append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/"] ~inner_text:"Home" "a"); e);
   append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/triage.html"] ~inner_text:"Triage" "a"); e);
-  append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/by-version/index.html" ~inner_text:"Logs" "a"); e);
+  append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","http://obi.ocamllabs.io/by-version/index.html"] ~inner_text:"Logs" "a"); e);
   e
 
 let idx () =
