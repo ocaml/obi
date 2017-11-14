@@ -128,7 +128,7 @@ module Analysis = struct
     |> List.map (fun (name, lv, res) ->
            List.fold_left
              (fun acc (version, cl) ->
-               match cl with `Fail, `Ok -> version :: acc | _ -> acc)
+               match cl with `Ok, `Fail -> version :: acc | _ -> acc)
              [] res
            |> fun r -> (name, lv, r) )
     |> List.map (fun (name, lv, versions) ->

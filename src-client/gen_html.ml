@@ -19,7 +19,6 @@ let top_navbar () =
   append_child ul (create_element ~classes:["nav-item"] "li" |> fun e -> append_child e (create_element ~class_:"nav-link" ~attributes:["href","#"] ~inner_text:"Logs" "a"); e);
   e
 
-
 let idx () =
   let nav = top_navbar () in
   let css = "body { padding-top: 3rem; }" in
@@ -123,7 +122,21 @@ let generate_triage index batches =
   let rev = index.Obi.most_recent_rev in
   let srev = String.with_range ~len:8 rev in
   let intro =
-    let e = create_element "div" in
+    let e =
+      let e =
+        create_element
+          ~attributes:[("aria-label", "breadcrumb"); ("role", "navigation")]
+          "nav"
+      in
+      let ol = create_element ~class_:"breadcrumb" "ol" in
+      append_child e ol ;
+      append_child ol
+        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "index.html" "Bulk Builds"); e);
+      append_child ol
+        (create_element ~classes:["breadcrumb-item"; "active"] ~inner_text:"Triage" "li");
+      e
+    in
+ 
     append_child e (create_element ~inner_text:"Triaging Build Failures" "h2");
     let foo = Fmt.strf "<p>We run analyses over the results of the bulk builds to correct for feature changes across OCaml compiler versions.  This page lists the active efforts that could use your help.  The full logs for the triage efforts here can be found at <a href=\"/by-version/%s/index.html\">by-version/%s</a>.</p>" srev srev |> parse in
     append_child e foo;
@@ -136,7 +149,7 @@ let generate_triage index batches =
     append_child e (create_element ~inner_text:"OCaml 4.06.0 flambda" ~id:"flambda" "h4");
     let inner_text = "Flambda is an experimental inliner for OCaml that should speed up programs. There should never be a program that fails with flambda and that works with normal OCaml, so this triage is highlighting failures where this is currently the case." in
     append_child e (create_element ~inner_text "p");
-    append_child e (html_flambda_error_406  rev (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
+    append_child e (html_flambda_error_406 rev (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
     e
   in
   let title ="Opam bulk build results" in
@@ -157,7 +170,7 @@ let generate_root_index index batches =
     append_child e (create_element ~inner_text:"How to Contribute" "h3");
     let inner_text = "Your contributions and help are very welcome to improve the state of the opam package database.  Anyone can submit a pull request to the package repository to improve the metadata." in
     append_child e (create_element ~inner_text "p");
-    let foo = Fmt.strf "<ul><li><b><a href=\"triage.html#safe-string\">4.06 safe-string migration</a></b> concerns moving the OCaml packages to support immutable strings, which are the new default in OCaml 4.06.0.</li><li><b><a href=\"triage.html#flambda\">flambda</a> looks for packages that do not compile using the experimental new flambda inliner.</li></ul>" |> parse in
+    let foo = Fmt.strf "<ul><li><b><a href=\"triage.html#safe-string\">4.06 safe-string migration</a></b> concerns moving the OCaml packages to support immutable strings, which are the new default in OCaml 4.06.0.</li><li><b><a href=\"triage.html#flambda\">flambda</a></b> looks for packages that do not compile using the experimental new flambda inliner.</li></ul>" |> parse in
     append_child e foo;
     e
   in
