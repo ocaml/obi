@@ -61,7 +61,7 @@ let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
  
 let text_safe_string_error_406 pkgs =
   safe_string_errors_406 pkgs |>
-  List.map (fun (name, versions) ->
+  List.map (fun (name, last_broken, versions) ->
     String.concat ~sep:", " versions |> fun vs ->
     Fmt.strf "%s (%s)" name vs
   ) |>
@@ -70,10 +70,10 @@ let text_safe_string_error_406 pkgs =
 let html_safe_string_error_406 pkgs = 
   let ul = create_element "ul" in
   safe_string_errors_406 pkgs |>
-  List.iter (fun (name, versions) ->
+  List.iter (fun (name, last_broken, versions) ->
     let e =
       String.concat ~sep:", " versions |>
-      Fmt.strf "<b>%s</b>: %s" name |>
+      Fmt.strf "<b %s>%s</b>: %s" (if last_broken then "class=\"text-danger\"" else "") name |>
       parse in
     let li = create_element "li" in
     append_child li e;
@@ -222,7 +222,7 @@ let generate_by_version_for_rev ~rev ~distro ~arch logs_uri res =
   List.iter
     (fun pkg_name ->
       let pkg = List.find (fun pkg -> pkg.Obi.name = pkg_name) res in
-      let vs = List.fold_left (fun a (ver,_) -> ver::a) [] pkg.versions |> List.sort String.compare in
+      let vs = List.fold_left (fun a (ver,_) -> ver::a) [] pkg.versions |> List.rev in
       let row = create_element "tr" in
       append_child tbody row ;
       let th =

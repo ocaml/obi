@@ -57,7 +57,9 @@ let gather_logs force meta_dir logs_dir input_dir () =
             end
           ) pkgs
         ) ovs >>= fun () ->
-        let versions = Hashtbl.fold (fun name versions acc -> {Obi.name;versions}::acc) h [] in
+        let versions = Hashtbl.fold (fun name versions acc ->
+           let versions = List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) versions in
+           {Obi.name;versions}::acc) h [] in
         Ok (arch,distro,versions)
       ) distros
     ) arches >>= fun res ->

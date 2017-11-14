@@ -43,6 +43,8 @@ type index =
   ; revs: (string * float * string) list }
   [@@deriving sexp]
 
+module VersionCompare = VersionCompare
+
 module Analysis = struct
   module OV = Ocaml_version
 
@@ -80,11 +82,10 @@ module Analysis = struct
     find_rev_in_batch ~rev batches |> select_arch_distro ~arch ~distro
 
 
-  let partition_two_ocaml_versions pkgs ov1 ov2
-      : ( string
-        * (string * ([`Ok | `Fail | `Missing] * [`Ok | `Fail | `Missing])) list
-        )
-        list =
+  let latest_version pkg =
+    List.rev pkg.versions |> List.hd |> fst
+
+  let partition_two_ocaml_versions pkgs ov1 ov2 =
     let classify_one ov res =
       match List.assoc ov res with
       | {status= `Exited 0; log_hash} -> `Ok
@@ -93,28 +94,31 @@ module Analysis = struct
     in
     List.map
       (fun pkg ->
+        let lv = latest_version pkg in
         List.map
           (fun (version, res) ->
             let cl1 = classify_one ov1 res in
             let cl2 = classify_one ov2 res in
             (version, (cl1, cl2)))
           pkg.versions
-        |> fun r -> (pkg.name, r))
+        |> fun r -> (pkg.name, lv, r))
       pkgs
-
 
   let safe_string_errors_406 pkgs =
     let ov1 = OV.of_string "4.06.0" in
     let ov2 = OV.of_string "4.06.0+default-unsafe-string" in
     partition_two_ocaml_versions pkgs ov1 ov2
-    |> List.map (fun (name, res) ->
+    |> List.map (fun (name, lv, res) ->
            List.fold_left
              (fun acc (version, cl) ->
                match cl with `Fail, `Ok -> version :: acc | _ -> acc)
              [] res
-           |> fun r -> (name, r) )
-    |> List.filter (fun (name, versions) -> versions <> [])
-    |> List.sort (fun a b -> compare (fst a) (fst b))
+           |> fun r -> (name, lv, r) )
+    |> List.map (fun (name, lv, versions) ->
+         let latest_broken = List.mem lv versions in
+         (name, latest_broken, versions) )
+    |> List.filter (fun (name, latest_broken, versions) -> versions <> [])
+    |> List.sort (fun (a,_,_) (b,_,_) -> compare a b)
 
 end
 
