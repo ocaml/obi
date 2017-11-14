@@ -77,21 +77,13 @@ let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
   ) |> fun () ->
   e
  
-let text_safe_string_error_406 pkgs =
-  safe_string_errors_406 pkgs |>
-  List.map (fun (name, last_broken, versions) ->
-    String.concat ~sep:", " versions |> fun vs ->
-    Fmt.strf "%s (%s)" name vs
-  ) |>
-  String.concat ~sep:", "
-
 let html_flambda_error_406 rev pkgs =
   let ul = create_element ~classes:["list-unstyled";"row"] "ul" in
   let srev = String.with_range ~len:8 rev in
   flambda_errors_406 pkgs |>
   List.iter (fun (name, last_broken, versions) ->
     let e =
-      List.map (fun v -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">%s</a>" srev (html_id_of_pkg_name name v) v) versions |>
+      List.map (fun (v,hash) -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/logs/%s.txt\">%s</a> (<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">#</a>)" rev v srev (html_id_of_pkg_name name v)) versions |>
       String.concat ~sep:", " |>
       Fmt.strf "<b %s>%s</b>: %s" (if last_broken then "class=\"text-danger\"" else "") name |>
       parse in
@@ -101,13 +93,14 @@ let html_flambda_error_406 rev pkgs =
   ) |> fun e ->
   ul
 
+
 let html_safe_string_error_406 rev pkgs = 
   let ul = create_element ~classes:["list-unstyled";"row"] "ul" in
   let srev = String.with_range ~len:8 rev in
   safe_string_errors_406 pkgs |>
   List.iter (fun (name, last_broken, versions) ->
     let e =
-      List.map (fun v -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">%s</a>" srev (html_id_of_pkg_name name v) v) versions |>
+      List.map (fun (v,hash) -> Fmt.strf "<a href=\"http://obi.ocamllabs.io/logs/%s.txt\">%s</a> (<a href=\"http://obi.ocamllabs.io/by-version/%s/index.html#%s\">#</a>)" rev v srev (html_id_of_pkg_name name v)) versions |>
       String.concat ~sep:", " |>
       Fmt.strf "<b %s>%s</b>: %s" (if last_broken then "class=\"text-danger\"" else "") name |>
       parse in
