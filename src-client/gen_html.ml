@@ -63,6 +63,14 @@ let select_arch_distro ~arch ~distro batch =
   | [] -> failwith "No results found for x86-64/debian-9"
   | _ -> failwith "Multiple results found for x86-64/debian-9"
 
+let find_rev_in_batch ~rev batches =
+  let open Obi in
+  List.find (fun batch -> batch.rev = rev) batches
+
+let find_pkgs_in_batch ~arch ~distro ~rev batches =
+  find_rev_in_batch ~rev batches |>
+  select_arch_distro ~arch ~distro
+
 let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
   (* TODO Factor out arch/distro selection *)
   let e = create_element elem in
@@ -74,14 +82,101 @@ let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
     append_child e (parse s)
   ) |> fun () ->
   e
-  
+ 
+let partition_two_ocaml_versions pkgs ov1 ov2 : (string * (string * ([`Ok|`Fail|`Missing] * [`Ok|`Fail|`Missing])) list) list =
+  let open Obi in
+  let classify_one ov res =
+    match List.assoc ov res with
+    | { status = `Exited 0; log_hash } -> `Ok
+    | _ -> `Fail
+    | exception Not_found -> `Missing in
+  List.map (fun pkg ->
+    List.map (fun (version, res) ->
+      let cl1 = classify_one ov1 res in
+      let cl2 = classify_one ov2 res in
+      (version, (cl1,cl2))
+    ) pkg.versions
+   |> fun r -> pkg.name, r
+  ) pkgs
+
+let safe_string_errors_406 pkgs =
+  let ov1 = OV.of_string "4.06.0" in
+  let ov2 = OV.of_string "4.06.0+default-unsafe-string" in
+  partition_two_ocaml_versions pkgs ov1 ov2 |>
+  List.map (fun (name, res) ->
+    List.fold_left (fun acc (version, cl) ->
+      match cl with
+      | `Fail, `Ok -> version::acc
+      | _ -> acc
+    ) [] res |> fun r -> name, r
+  ) |> List.filter (fun (name, versions) -> versions <> []) |>
+  List.sort (fun a b -> compare (fst a) (fst b))
+
+let text_safe_string_error_406 pkgs =
+  safe_string_errors_406 pkgs |>
+  List.map (fun (name, versions) ->
+    String.concat ~sep:", " versions |> fun vs ->
+    Fmt.strf "%s (%s)" name vs
+  ) |>
+  String.concat ~sep:", "
+
+let html_safe_string_error_406 pkgs = 
+  let ul = create_element "ul" in
+  safe_string_errors_406 pkgs |>
+  List.iter (fun (name, versions) ->
+    let e =
+      String.concat ~sep:", " versions |>
+      Fmt.strf "<b>%s</b>: %s" name |>
+      parse in
+    let li = create_element "li" in
+    append_child li e;
+    append_child ul li
+  ) |> fun e ->
+  ul
+
+let generate_root_index index batches =
+  let idx = idx () in
+  let (rev,_,_) = List.hd index.Obi.revs in
+  let nav =
+      let e =
+        create_element
+          ~attributes:[("aria-label", "breadcrumb"); ("role", "navigation")]
+          "nav"
+      in
+      let ol = create_element ~class_:"breadcrumb" "ol" in
+      append_child e ol ;
+      append_child ol
+        (create_element ~inner_text:"Bulk Builds" ~classes:["breadcrumb-item"; "active"] "li");
+      e
+  in
+  let intro =
+    let e = nav in
+    append_child e (create_element ~inner_text:"Opam package builds" "h2");
+    let inner_text = "This site contains regular bulk builds of the opam package repository." in
+    append_child e (create_element ~inner_text "p");
+    let foo = Fmt.strf "<ul><li><b><a href=\"by-version/index.html\">Logs by Compiler Version</a></b>: contains regular snapshots of the full repository, built on Debian-9/x86_64 across recent OCaml compiler releases.</li><li><b>Logs by Distro</b>: Many Linux variants are built using containers, and these build logs help check portability of a release. <i>(coming soon)</i></li><li><b>By CPU architecture:</b> in addition to x86_64, we are also working on arm64 and ppc64le logs. <i>(coming soon)</i> </ul>" |> parse in
+    append_child e foo;
+    append_child e (create_element ~inner_text:"How to Contribute" "h3");
+    let inner_text = "Your contributions and help are very welcome to improve the state of the opam package database." in
+    append_child e (create_element ~inner_text "p");
+    append_child e (create_element ~inner_text:"OCaml 4.06.0 safe-string" "h4");
+    let inner_text = "We have just released OCaml 4.06.0, with the safe-string feature.  The support was added via an optional command line flag across a couple of years to make strings immutable, and now the 4.06 release turns this on by default.  This has resulted in a number of package regressions which need to be fixed by releasing a new package which supports the feature, and by constraining older releases in opam to not be selected for compiler revisions 4.06.0 or greater.  The list is:" in
+    append_child e (create_element ~inner_text "p");
+    append_child e (html_safe_string_error_406 (find_pkgs_in_batch ~distro:(`Debian `V9) ~arch:`X86_64 ~rev batches));
+    e
+  in
+  let title ="Opam bulk build results" in
+  replace (idx $ "title.template") (create_element ~inner_text:title "title") ;
+  replace (idx $ "div.intro") intro;
+  Ok idx
+
 let generate_index_by_version index batches =
   let idx = idx () in
   let content =
     let ul = create_element ~classes:["list-group"] "div" in
     let _latest =
-      let (_, date, subj) = List.hd index.Obi.revs in
-      let target = "latest/" in
+      let (rev, date, subj) = List.hd index.Obi.revs in
+      let target = "latest/index.html" in
       let li = create_element ~attributes:["href",target] ~classes:["list-group-item";"list-group-item-action";"flex-column";"align-items-start";"active"] "a" in
       append_child ul li;
       let li2 = create_element ~classes:["d-flex";"w-100";"justify-content-between"] "div" in
@@ -123,7 +218,7 @@ let generate_index_by_version index batches =
       let ol = create_element ~class_:"breadcrumb" "ol" in
       append_child e ol ;
       append_child ol
-        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../.." "Bulk Builds"); e);
+        (create_element ~classes:["breadcrumb-item"; "active"] "li" |> fun e -> append_child e (href "../index.html" "Bulk Builds"); e);
       append_child ol
         (create_element ~classes:["breadcrumb-item"; "active"] ~inner_text:"By Compiler Version" "li");
       e
@@ -267,4 +362,6 @@ let generate logs_uri meta_dir logs_dir html_dir () =
   (* unlink needed due to https://github.com/dbuenzli/bos/issues/75 *)
   OS.Path.symlink ~force:true ~target:(Fpath.v latest_rev) latest_link >>= fun () ->
   generate_index_by_version index batches >>= fun html ->
-  write_html Fpath.(html_dir / "by-version" / "index.html") html
+  write_html Fpath.(html_dir / "by-version" / "index.html") html >>= fun () ->
+  generate_root_index index batches >>= fun html ->
+  write_html Fpath.(html_dir / "index.html") html
