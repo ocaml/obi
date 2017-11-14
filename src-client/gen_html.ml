@@ -35,41 +35,17 @@ let load_index meta_dir =
   Sexplib.Sexp.load_sexp |>
   Obi.index_of_sexp
 
+let load_analysis meta_dir =
+  Fpath.(meta_dir / "analysis.sxp") |>
+  Fpath.to_string |>
+  Sexplib.Sexp.load_sexp |>
+  Obi.analysis_of_sexp
+
 let write_html dir html =
   Logs.info (fun l -> l "Generating: %a" Fpath.pp dir);
   OS.File.write dir (Soup.to_string html)
 
-let calculate_stats_for_pkgs (pkgs:Obi.pkg list) =
-  let open Obi in
-  let h = Hashtbl.create 1000 in
-  List.fold_left (fun acc pkg -> List.map snd pkg.versions @ acc) [] pkgs |>
-  List.flatten |>
-  List.iter (fun (ov, res) ->
-    begin if not (Hashtbl.mem h ov) then Hashtbl.add h ov (ref 0, ref 0) end;
-    let ok, fail = Hashtbl.find h ov in
-    if res.status = `Exited 0 then incr ok else incr fail
-  ) |> fun () ->
-  Hashtbl.fold (fun ov (ok,fail) acc -> (ov, (!ok,!fail))::acc) h [] |>
-  List.sort (fun (a,_) (b,_) -> OV.compare a b)
-
-let select_arch_distro ~arch ~distro batch =
-  let open Obi in
-  List.fold_left (fun acc (arch,distro,v) ->
-    match arch,distro with
-    | arch',distro' when arch'=arch && distro=distro' -> v::acc
-    | _ -> acc) [] batch.res |>
-  function
-  | [hd] -> hd
-  | [] -> failwith "No results found for x86-64/debian-9"
-  | _ -> failwith "Multiple results found for x86-64/debian-9"
-
-let find_rev_in_batch ~rev batches =
-  let open Obi in
-  List.find (fun batch -> batch.rev = rev) batches
-
-let find_pkgs_in_batch ~arch ~distro ~rev batches =
-  find_rev_in_batch ~rev batches |>
-  select_arch_distro ~arch ~distro
+open Obi.Analysis
 
 let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
   (* TODO Factor out arch/distro selection *)
@@ -83,35 +59,6 @@ let html_stats_for_pkgs elem (pkgs:Obi.pkg list) =
   ) |> fun () ->
   e
  
-let partition_two_ocaml_versions pkgs ov1 ov2 : (string * (string * ([`Ok|`Fail|`Missing] * [`Ok|`Fail|`Missing])) list) list =
-  let open Obi in
-  let classify_one ov res =
-    match List.assoc ov res with
-    | { status = `Exited 0; log_hash } -> `Ok
-    | _ -> `Fail
-    | exception Not_found -> `Missing in
-  List.map (fun pkg ->
-    List.map (fun (version, res) ->
-      let cl1 = classify_one ov1 res in
-      let cl2 = classify_one ov2 res in
-      (version, (cl1,cl2))
-    ) pkg.versions
-   |> fun r -> pkg.name, r
-  ) pkgs
-
-let safe_string_errors_406 pkgs =
-  let ov1 = OV.of_string "4.06.0" in
-  let ov2 = OV.of_string "4.06.0+default-unsafe-string" in
-  partition_two_ocaml_versions pkgs ov1 ov2 |>
-  List.map (fun (name, res) ->
-    List.fold_left (fun acc (version, cl) ->
-      match cl with
-      | `Fail, `Ok -> version::acc
-      | _ -> acc
-    ) [] res |> fun r -> name, r
-  ) |> List.filter (fun (name, versions) -> versions <> []) |>
-  List.sort (fun a b -> compare (fst a) (fst b))
-
 let text_safe_string_error_406 pkgs =
   safe_string_errors_406 pkgs |>
   List.map (fun (name, versions) ->

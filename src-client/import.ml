@@ -87,7 +87,9 @@ let generate_index meta_dir () =
      String.trim subj |> fun subj ->
      Ok (rev, date, subj)
    ) revs >>= fun revs ->
+   List.sort (fun (_, a, _) (_, b, _) -> compare b a) revs |> fun revs ->
    let last_updated = Unix.gettimeofday () in
-   let index = {Obi.last_updated; revs} in
+   let most_recent_rev,_,_ = List.hd revs in (* TODO check for empty rev list *)
+   let index = {Obi.last_updated; most_recent_rev; revs} in
    OS.Dir.create meta_dir >>= fun _ ->
    OS.File.write Fpath.(meta_dir / "index.sxp") (Obi.sexp_of_index index |> Sexplib.Sexp.to_string_hum) 
