@@ -35,23 +35,26 @@ let opam_repo_rev_t =
   & info ["opam-repo-rev"] ~docv:"OPAM_REPO_REV" ~doc
 
 let logs_cmd =
+  let force =
+    let doc = "rescan all revisions, even if they have already been recorded" in
+    Arg.(value & flag & info ["force"] ~doc) in
   let input_t =
-    let doc = "input dir for cluster logs" in
+    let doc = "input dir for bulk build logs" in
     let open Arg in 
     value & pos 0 fpath (Fpath.v "_results")
     & info [] ~docv:"INPUT_DIR" ~doc in
-  let doc = "import build logs after a successful build" in
+  let doc = "import build logs from bulk build using $(b,obi-docker)" in
   let exits = Term.default_exits in
   ( (let open Term in
     term_result
-      (const Import.gather_logs $ meta_dir_t $ logs_dir_t $ input_t $ setup_logs))
+      (const Import.gather_logs $ force $ meta_dir_t $ logs_dir_t $ input_t $ setup_logs))
   , Term.info "import-logs" ~doc ~exits )
 
 let gen_html_cmd =
   let logs_uri_t = 
-    let doc ="Base URi for build logs (stored by hash)" in
+    let doc ="Base URI for build logs (stored by hash)" in
     let open Arg in
-    value & opt string "http://ci-logs.ocamllabs.io/" &
+    value & opt string "http://ci.ocamllabs.io/logs/" &
     info ["logs-uri"] ~docv:"LOGS_URI" ~doc in
   let doc = "generate html site from results metadata" in
   let open Arg in

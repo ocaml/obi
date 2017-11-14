@@ -16,7 +16,8 @@ let store_build_log logs_dir log =
     Logs.debug (fun l -> l "Stored build log: %a" Fpath.pp f);
     Ok hash
 
-let gather_logs meta_dir logs_dir input_dir () = 
+let gather_logs force meta_dir logs_dir input_dir () = 
+  if force then failwith "--force not implemented yet"; (* TODO *)
   OS.Dir.contents ~rel:true input_dir >>= fun revs ->
   C.iter (fun rev ->
     let p = Fpath.(input_dir // rev) in
