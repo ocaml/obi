@@ -166,7 +166,7 @@ module Phases = struct
     let tag = Fmt.strf "%s:{}-linux-%s" staging_hub_id arch_s in
     let cmd = C.Docker.build_cmd ~cache ~dockerfile ~tag (Fpath.v ".") in
     let args = List.map fst dfiles in
-    C.Parallel.run ~delay:5.0 ~retries:1 logs_dir "01-build" cmd args
+    C.Parallel.run ~jobs:10 ~delay:5.0 ~retries:1 logs_dir "01-build" cmd args
     >>= fun _ ->
     if_opt push
     @@ fun () ->
