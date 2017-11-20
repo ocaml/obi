@@ -216,7 +216,7 @@ module Phases = struct
                 in
                 let tag = Fmt.strf "%s-ocaml-%a" tag OV.pp ov in
                 O.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
-              OV.Releases.recent_major
+              OV.Releases.recent
           in
           mega_ocaml :: each_ocaml)
         D.active_distros
@@ -472,7 +472,7 @@ let ssh_hosts =
 
 
 let buildv ov distro =
-  Ocaml_version.of_string ov
+  Ocaml_version.of_string_exn ov
   |> fun ov ->
   let distro =
     match D.distro_of_tag distro with

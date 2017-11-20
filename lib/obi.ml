@@ -7,7 +7,7 @@ module Ocaml_version = struct
 
   let t_of_sexp t =
     match t with
-    | Sexplib.Sexp.Atom t -> of_string t
+    | Sexplib.Sexp.Atom t -> of_string_exn t
     | _ -> failwith "invalid input for Ocaml_version.t_of_sexp"
 
 
@@ -105,8 +105,8 @@ module Analysis = struct
       pkgs
 
   let safe_string_errors_406 pkgs =
-    let ov1 = OV.of_string "4.06.0" in
-    let ov2 = OV.of_string "4.06.0+default-unsafe-string" in
+    let ov1 = OV.Releases.v4_06_0 in
+    let ov2 = OV.(with_variant Releases.v4_06_0 (Some "default-unsafe-string")) in
     partition_two_ocaml_versions pkgs ov1 ov2
     |> List.map (fun (name, lv, res) ->
            List.fold_left
@@ -122,8 +122,8 @@ module Analysis = struct
 
   (* TODO combine with safe string *)
   let flambda_errors_406 pkgs =
-    let ov1 = OV.of_string "4.06.0+flambda" in
-    let ov2 = OV.of_string "4.06.0" in
+    let ov1 = OV.(with_variant Releases.v4_06_0 (Some "flambda")) in
+    let ov2 = OV.Releases.v4_06_0 in
     partition_two_ocaml_versions pkgs ov1 ov2
     |> List.map (fun (name, lv, res) ->
            List.fold_left

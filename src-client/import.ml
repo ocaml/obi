@@ -37,7 +37,7 @@ let gather_logs force meta_dir logs_dir input_dir () =
         OS.Dir.contents ~rel:true p >>= fun ovs ->
         C.iter (fun ov ->
           let p = Fpath.(p // ov) in
-          Fpath.to_string ov |> OV.of_string |> fun ov ->
+          Fpath.to_string ov |> OV.of_string >>= fun ov ->
           OS.File.read_lines Fpath.(p / "pkgs.txt") >>= fun pkgs ->
           C.iter (fun pkg ->
             Sexplib.Sexp.load_sexp Fpath.((p / (pkg ^ ".sxp")) |> to_string) |>
