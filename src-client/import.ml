@@ -7,7 +7,6 @@ module OV = Ocaml_version
 
 let store_build_log logs_dir log =
   let hash = Digest.(string log |> to_hex) in
-  OS.Dir.create logs_dir >>= fun _ ->
   let f = Fpath.(logs_dir / (hash ^ ".txt")) in
   OS.File.exists f >>= function
   | true -> Ok hash
@@ -18,6 +17,7 @@ let store_build_log logs_dir log =
 
 let gather_logs force meta_dir logs_dir input_dir () = 
   if force then failwith "--force not implemented yet"; (* TODO *)
+  OS.Dir.create logs_dir >>= fun _ ->
   OS.Dir.contents ~rel:true input_dir >>= fun revs ->
   C.iter (fun rev ->
     let p = Fpath.(input_dir // rev) in
