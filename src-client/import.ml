@@ -40,6 +40,7 @@ let gather_logs force meta_dir logs_dir input_dir () =
           Fpath.to_string ov |> OV.of_string >>= fun ov ->
           OS.File.read_lines Fpath.(p / "pkgs.txt") >>= fun pkgs ->
           C.iter (fun pkg ->
+            try begin
             Sexplib.Sexp.load_sexp Fpath.((p / (pkg ^ ".sxp")) |> to_string) |>
             C.cmd_log_of_sexp |> fun r ->
             match String.cut ~sep:"." pkg with
@@ -54,7 +55,7 @@ let gather_logs force meta_dir logs_dir input_dir () =
                let versions = (version, results_for_ver) :: (List.remove_assoc version versions) in
                Hashtbl.replace h name versions;
                Ok ()
-            end
+            end end with exn -> prerr_endline (Fmt.strf "warning: %s" (Printexc.to_string exn)); Ok ()
           ) pkgs
         ) ovs >>= fun () ->
         let versions = Hashtbl.fold (fun name versions acc ->
