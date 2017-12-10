@@ -252,18 +252,18 @@ module Phases = struct
       ; push
       ; build_dir
       ; logs_dir
-      ; results_dir } {distro; ov} () =
-    let prefix = phase5_prefix ~distro ~ov ~arch ~opam_repo_rev:"setup" in
+      ; results_dir } {distro; ov} opam_repo_rev () =
+    let prefix = phase5_prefix ~distro ~ov ~arch ~opam_repo_rev in
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
-    let dfiles = O.bulk_build prod_hub_id distro ov () in
+    let dfiles = O.bulk_build prod_hub_id distro ov opam_repo_rev in
     G.generate_dockerfiles ~crunch:false build_dir dfiles
     >>= fun () ->
     if_opt build
     @@ fun () ->
     let dockerfile = Fpath.(build_dir / "Dockerfile.{}") in
     let setup_tag =
-      phase5_tag ~staging_hub_id ~distro ~ov ~arch ~opam_repo_rev:"setup"
+      phase5_tag ~staging_hub_id ~distro ~ov ~arch ~opam_repo_rev
     in
     let cmd =
       C.Docker.build_cmd ~cache ~dockerfile ~tag:setup_tag (Fpath.v ".")
@@ -271,10 +271,6 @@ module Phases = struct
     let args = List.map fst dfiles in
     C.Parallel.run ~retries:1 logs_dir "01-build" cmd args
     >>= fun _ ->
-    let opam_rev_cmd = Cmd.of_list ["cat"; "/home/opam/opam-repo-rev"] in
-    OS.Cmd.(run_out (C.Docker.run_cmd setup_tag opam_rev_cmd) |> to_string)
-    >>= fun opam_repo_rev ->
-    print_endline opam_repo_rev ;
     let tag = phase5_tag ~staging_hub_id ~distro ~ov ~arch ~opam_repo_rev in
     OS.Cmd.(run Cmd.(C.Docker.bin % "tag" % setup_tag % tag))
     >>= fun () ->
@@ -508,7 +504,7 @@ let phase5_cmd =
     "create a bulk build base image and generate a package list for it"
   in
   let exits = Term.default_exits in
-  ( Term.(term_result (const Phases.phase5 $ copts_t $ build_t $ setup_logs))
+  ( Term.(term_result (const Phases.phase5 $ copts_t $ build_t $ opam_repo_rev_t $ setup_logs))
   , Term.info "phase5" ~doc ~exits )
 
 
