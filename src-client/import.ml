@@ -88,7 +88,7 @@ let generate_index meta_dir () =
      String.trim date |> float_of_string |> fun date ->
      run_git Cmd.(v "show" % "-s" % "--pretty=format:%s" % rev) >>= fun subj ->
      String.trim subj |> fun subj ->
-     Ok (rev, date, subj
+     Ok (rev, date, subj)
    ) revs >>= fun revs ->
    List.sort (fun (_, a, _) (_, b, _) -> compare b a) revs |> fun revs ->
    let last_updated = Unix.gettimeofday () in
