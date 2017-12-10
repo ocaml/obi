@@ -84,11 +84,11 @@ let generate_index meta_dir () =
       Logs.info (fun l -> l "Cloning opam repository");
       OS.Cmd.(run (Cmd.(v "git" % "clone" % opam_repo % p tdir)))) >>= fun () ->
    C.map (fun rev ->
-     run_git Cmd.(v "show" % "--pretty=format:%ct" % rev) >>= fun date ->
+     run_git Cmd.(v "show" % "-s" % "--pretty=format:%ct" % rev) >>= fun date ->
      String.trim date |> float_of_string |> fun date ->
-     run_git Cmd.(v "show" % "--pretty=format:%s" % rev) >>= fun subj ->
+     run_git Cmd.(v "show" % "-s" % "--pretty=format:%s" % rev) >>= fun subj ->
      String.trim subj |> fun subj ->
-     Ok (rev, date, subj)
+     Ok (rev, date, subj
    ) revs >>= fun revs ->
    List.sort (fun (_, a, _) (_, b, _) -> compare b a) revs |> fun revs ->
    let last_updated = Unix.gettimeofday () in
