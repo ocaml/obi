@@ -154,7 +154,7 @@ module Phases = struct
       |> List.map (O.all_ocaml_compilers prod_hub_id arch)
     in
     let each_compiler =
-      List.filter (D.distro_supported_on arch) D.active_distros
+      List.filter (D.distro_supported_on arch) D.active_tier1_distros
       |> List.map (O.separate_ocaml_compilers prod_hub_id arch) |> List.flatten
     in
     let dfiles = all_compilers @ each_compiler in
