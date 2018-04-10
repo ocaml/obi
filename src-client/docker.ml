@@ -66,7 +66,7 @@ module Phases = struct
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
     let tag = Fmt.strf "%s:{}-opam-linux-%s" staging_hub_id arch_s in
-    List.filter (D.distro_supported_on arch) D.active_distros
+    List.filter (D.distro_supported_on arch OV.Releases.latest) D.active_distros
     |> List.map O.gen_opam2_distro
     |> fun ds ->
     G.generate_dockerfiles ~crunch:true build_dir ds
@@ -95,7 +95,7 @@ module Phases = struct
           let tag = D.tag_of_distro distro in
           let target = Fmt.strf "%s:%s-opam" prod_hub_id tag in
           let platforms =
-            D.distro_arches distro
+            D.distro_arches OV.Releases.latest distro
             |> List.map (fun arch ->
                    let arch = OV.string_of_arch arch in
                    let image =
@@ -150,11 +150,11 @@ module Phases = struct
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
     let all_compilers =
-      List.filter (D.distro_supported_on arch) D.active_distros
+      D.active_distros
       |> List.map (O.all_ocaml_compilers prod_hub_id arch)
     in
     let each_compiler =
-      List.filter (D.distro_supported_on arch) D.active_tier1_distros
+      D.active_tier1_distros
       |> List.map (O.separate_ocaml_compilers prod_hub_id arch) |> List.flatten
     in
     let dfiles = all_compilers @ each_compiler in
@@ -186,7 +186,7 @@ module Phases = struct
           let mega_ocaml =
             let target = Fmt.strf "%s:%s-ocaml" prod_hub_id tag in
             let platforms =
-              D.distro_arches distro
+              D.distro_arches OV.Releases.latest distro
               |> List.map (fun arch ->
                      let arch = OV.string_of_arch arch in
                      let image =
@@ -204,7 +204,7 @@ module Phases = struct
                   Fmt.strf "%s:%s-ocaml-%a" prod_hub_id tag OV.pp ov
                 in
                 let platforms =
-                  D.distro_arches distro
+                  D.distro_arches ov distro
                   |> List.filter (fun a -> OV.(Has.arch a ov))
                   |> List.map (fun arch ->
                          let arch = OV.string_of_arch arch in
