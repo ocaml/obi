@@ -1,5 +1,10 @@
 steps:
   - label: 'Build'
-    command: 'opam exec -- jbuilder'
-    env:
-      - BUILDKITE_DOCKER: true
+    command: 'opam switch create .'
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2:alpine-3.7-ocaml"
+        workdir: /app
+        environment:
+          - OPAMYES=1
+
