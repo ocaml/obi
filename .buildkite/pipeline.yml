@@ -2,11 +2,12 @@ steps:
   - label: 'Build'
     command:
       - 'rsync -a /src /home/opam/src && sudo chown -R opam /home/opam/src'
-      - 'cd /home/opam/src && opam switch create . ocaml-base-compiler.4.06.0'
+      - 'opam install --deps-only /home/opam/src'
     plugins:
       docker#v1.1.1:
-        image: "ocaml/opam2:debian-9-ocaml"
+        image: "ocaml/opam2-staging:debian-9-ocaml-4.06-linux-amd64"
         workdir: /src
+        always_pull: true
         environment:
           - OPAMYES=1
 
