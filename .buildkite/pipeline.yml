@@ -2,4 +2,4 @@ steps:
   - label: 'Build'
     command: 'opam exec -- jbuilder'
     env:
-      - BUILDKITE_DOCKER=true
+      - BUILDKITE_DOCKER: true
