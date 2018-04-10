@@ -18,4 +18,3 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=8
-              - plugins:
