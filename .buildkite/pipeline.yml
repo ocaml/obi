@@ -41,3 +41,5 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=8
+  - wait
+  - trigger: "opam-phase2"

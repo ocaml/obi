@@ -19,7 +19,3 @@ for i in Dockerfile.*; do
         username: avsm
 EOM
 done
-
-echo "  - wait"
-echo "  - trigger: \"opam-phase2\""
-
