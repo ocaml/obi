@@ -1,4 +1,5 @@
 steps:
-  - label: 'Test'
-    command: 'echo hello world'
-
+  - label: 'Build'
+    command: 'opam exec -- jbuilder'
+    env:
+      - BUILDKITE_DOCKER=true
