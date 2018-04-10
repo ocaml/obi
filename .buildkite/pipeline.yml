@@ -1,7 +1,7 @@
 steps:
   - label: 'Build'
     command:
-      - 'rsync -a /src /home/opam/src && sudo chown -R opam /home/opam/src'
+      - 'rsync -av /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'opam install --deps-only /home/opam/src'
     plugins:
       docker#v1.1.1:
