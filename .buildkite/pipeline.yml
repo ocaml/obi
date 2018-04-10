@@ -3,6 +3,8 @@ steps:
     command:
       - 'rsync -av /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'ls -la /home/opam/src'
+      - 'opam pin add -n --dev dockerfile-opam'
+      - 'opam pin add -n --dev ocaml-version'
       - 'opam install --deps-only /home/opam/src'
     plugins:
       docker#v1.1.1:
