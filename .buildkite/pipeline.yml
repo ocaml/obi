@@ -1,7 +1,7 @@
 steps:
   - label: 'Build X86_64'
     agents:
-      queue: x86_64
+      arch: x86_64
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4'
@@ -22,7 +22,7 @@ steps:
           - OPAMJOBS=8
   - label: 'Build ARM64'
     agents:
-      queue: aarch64
+      arch: aarch64
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4'
