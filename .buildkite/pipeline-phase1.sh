@@ -17,3 +17,7 @@ for i in Dockerfile.*; do
         username: avsm
 EOM
 done
+
+echo "  - wait"
+
+
