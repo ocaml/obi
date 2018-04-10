@@ -22,7 +22,7 @@ steps:
           - OPAMJOBS=8
   - label: 'Build ARM64'
     agents:
-      arch: aarch64
+      arch: arm64
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4'
