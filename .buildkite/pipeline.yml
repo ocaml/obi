@@ -8,7 +8,7 @@ steps:
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-docker phase1 -vv --build=false'
-      - '/home/opam/src/.buildkite/phase1-pipeline.sh /home/opam/src/_obj/phase1-amd64/ | buildkite-agent pipeline upload'
+      - '/home/opam/src/.buildkite/pipeline-phase1.sh /home/opam/src/_obj/phase1-amd64/ | buildkite-agent pipeline upload'
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging:debian-9-ocaml-4.06-linux-amd64"
