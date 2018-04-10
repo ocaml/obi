@@ -66,7 +66,7 @@ module Phases = struct
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
     let tag = Fmt.strf "%s:{}-opam-linux-%s" staging_hub_id arch_s in
-    List.filter (D.distro_supported_on arch OV.Releases.latest) D.active_distros
+    List.filter (D.distro_supported_on arch OV.Releases.latest) (D.active_distros arch)
     |> List.map O.gen_opam2_distro
     |> fun ds ->
     G.generate_dockerfiles ~crunch:true build_dir ds
@@ -104,7 +104,7 @@ module Phases = struct
                    (image, arch) )
           in
           O.multiarch_manifest ~target ~platforms |> fun m -> (tag, m))
-        D.active_distros
+        (D.active_distros `X86_64) (* TODO add all_active_distros for all architectures *)
     in
     C.iter (fun (t, m) -> Bos.OS.File.write (yaml_file t) m) yamls
     >>= fun () ->
@@ -150,11 +150,11 @@ module Phases = struct
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
     let all_compilers =
-      D.active_distros
+      D.active_distros arch
       |> List.map (O.all_ocaml_compilers prod_hub_id arch)
     in
     let each_compiler =
-      D.active_tier1_distros
+      D.active_tier1_distros arch
       |> List.map (O.separate_ocaml_compilers prod_hub_id arch) |> List.flatten
     in
     let dfiles = all_compilers @ each_compiler in
@@ -219,7 +219,7 @@ module Phases = struct
               OV.Releases.recent
           in
           mega_ocaml :: each_ocaml)
-        D.active_distros
+        (D.active_distros `X86_64)
       |> List.flatten
     in
     C.iter (fun (t, m) -> Bos.OS.File.write (yaml_file t) m) yamls
