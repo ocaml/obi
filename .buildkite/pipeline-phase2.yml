@@ -9,6 +9,7 @@ steps:
       - 'opam pin add -n --dev ocaml-version'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-docker phase1 --build=false -vv'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-docker phase2 -vv'
     plugins:
       docker-login#v1.0.0:
