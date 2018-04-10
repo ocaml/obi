@@ -1,8 +1,8 @@
 steps:
   - label: 'Build'
     command:
-      - 'rsync -av /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
-      - 'ls -la /home/opam/src'
+      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
+      - 'apt update && apt install -y m4'
       - 'opam pin add -n --dev dockerfile-opam'
       - 'opam pin add -n --dev ocaml-version'
       - 'opam install --deps-only /home/opam/src'
