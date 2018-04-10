@@ -8,6 +8,8 @@ for i in Dockerfile.*; do
   f=$(echo $i | sed -e 's/^Dockerfile.//g') 
   cat <<EOM
   - label: $f-$1
+    agent:
+      arch: $1
     command:
       - buildkite-agent artifact download phase1-$1/Dockerfile.$f .
       - cat phase1-$1/Dockerfile.$f
