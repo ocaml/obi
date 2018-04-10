@@ -1,0 +1,48 @@
+steps:
+  - label: 'Build Index'
+    command:
+      - ./.buildkite/obi-index.sh
+    agents:
+      docker: "true"
+      os: "linux"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging:obi-buildkite"
+        always_pull: true
+  - wait
+  - label: 'Push Index'
+    command:
+      - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
+      - git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'
+      - rm -rf index
+      - git clone git@github.com:avsm/obi-logs index --reference .
+      - git -C index checkout --orphan index
+      - git -C index reset
+      - git -C index clean -dxf
+      - buildkite-agent artifact download 'index.sxp' index
+      - git -C index add .
+      - git -C index commit -m 'BuildKite Update' || true
+      - git -C index push origin index -f
+      - rm -rf index
+    retry:
+      automatic:
+        limit: 3
+    agents:
+      githubpusher: "true"
+  - label: 'Push Maintainer and Tag Cache'
+    command:
+      - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
+      - git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'
+      - rm -rf obi-logs
+      - git clone git@github.com:avsm/obi-logs -b builds
+      - buildkite-agent artifact download 'maintainers.sxp' obi-logs
+      - buildkite-agent artifact download 'tags.sxp' obi-logs
+      - git -C obi-logs add tags.sxp maintainers.sxp
+      - git -C obi-logs commit -m 'BuildKite Cache Update' || true
+      - git -C obi-logs push origin builds
+      - rm -rf obi-logs
+    retry:
+      automatic:
+        limit: 3
+    agents:
+      githubpusher: "true"

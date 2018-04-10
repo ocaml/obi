@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(library
+ ((name obi)
+  (public_name obi)
+  (libraries (ocaml-version sexplib dockerfile-opam ezjsonm))
+  (preprocess (per_module ((pps (ppx_sexp_conv)) (obi))))))

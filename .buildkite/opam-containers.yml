@@ -1,0 +1,30 @@
+steps:
+  - label: 'Build'
+    command:
+      - 'obi-buildkite gen -vv -o /home/opam/_results'
+      - 'cd /home/opam/_results && buildkite-agent artifact upload "phase*-*/*"'
+      - 'cd /home/opam/_results && buildkite-agent artifact upload "README.md"'
+      - 'cat /home/opam/_results/phase1.yml | buildkite-agent pipeline upload'
+    concurrency: 1
+    concurrency_group: "opam/build"
+    agents:
+      docker: "true"
+      os: "linux"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging:obi-buildkite"
+        always_pull: true
+  - wait
+  - command:
+    - 'rm -rf infrastructure.wiki/'
+    - 'git clone git@github.com:ocaml/infrastructure.wiki'
+    - 'buildkite-agent artifact download "README.md" .'
+    - 'mv README.md infrastructure.wiki/Containers.md'
+    - 'git config --global user.email "bactrian@ocaml.org"'
+    - 'git config --global user.name "Bactrian the Build Bot"'
+    - '(cd infrastructure.wiki && git add . && git commit -m containers -a && git push) || true'
+    label: ':rocket: README'
+    concurrency: 1
+    concurrency_group: "opam/push"
+    agents:
+      githubpusher: true

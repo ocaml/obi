@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(executables
- ((names (main docker))
-  (public_names (obi-logs obi-docker))
-  (libraries (obi dockerfile-opam dockerfile-cmd lambdasoup uri ptime))
-  (package obi)
-))

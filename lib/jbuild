@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name obi)
-  (public_name obi)
-  (libraries (ocaml-version astring rresult dockerfile-opam sexplib fmt))
-  (preprocess (per_module ((pps (ppx_sexp_conv)) (obi))))
- ))

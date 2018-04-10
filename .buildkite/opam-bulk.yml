@@ -1,0 +1,22 @@
+steps:
+  - label: 'Opam Repo Rev'
+    command:
+      - 'cd /home/opam && obi-buildkite bulk --arch=$ARCH --opam-repo-rev=$OPAM_REPO_REV -vv'
+      - 'cd /home/opam/_results && buildkite-agent artifact upload "bulk-*/*"'
+      - 'cat /home/opam/_results/bulk.yml | buildkite-agent pipeline upload'
+    agents:
+      docker: "true"
+      os: "linux"
+      pusher: "true"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging:obi-buildkite"
+        workdir: /src
+        always_pull: true
+        environment:
+          - DISTRO=${DISTRO?}
+          - OCAML_VERSION=${OCAML_VERSION?}
+          - OPAM_REPO_REV=${OPAM_REPO_REV?}
+          - ARCH=${ARCH?}
+      docker-login#v1.0.0:
+        username: avsm
