@@ -8,7 +8,7 @@ for i in Dockerfile.*; do
   f=$(echo $i | sed -e 's/^Dockerfile.//g') 
   cat <<EOM
   - label: $f-$1
-    agent:
+    agents:
       arch: $1
     command:
       - buildkite-agent artifact download phase1-$1/Dockerfile.$f .
@@ -21,5 +21,5 @@ EOM
 done
 
 echo "  - wait"
-
+echo "  - trigger: \"opam-phase2\""
 
