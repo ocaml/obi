@@ -64,15 +64,48 @@ let gen {staging_hub_id; results_dir; _} () =
       let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
       let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A [
-        `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest create -a %s:%s-opam %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
       ] in
       `O [ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String "amd64" ];
            docker_login] :: acc) p2 [] in
-  let yml = `O [ "steps", `A (p1_builds @ [`String "wait"] @ p2_march) ] in
-  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn yml)
+  let p3 =
+    List.map (fun arch ->
+      let arch_s = OV.string_of_arch arch in
+      let prefix = Fmt.strf "phase3-%s" arch_s in
+      let results_dir = Fpath.(results_dir / prefix) in
+      ignore (Bos.OS.Dir.create ~path:true results_dir);
+      let all_compilers =
+        D.active_distros arch |>
+        List.map (O.all_ocaml_compilers staging_hub_id arch) in
+      let each_compiler =
+        D.active_tier1_distros arch |>
+        List.map (O.separate_ocaml_compilers staging_hub_id arch) |> List.flatten in
+      let dfiles = all_compilers @ each_compiler in
+      ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
+      List.map (fun (f,_) -> f,arch) dfiles
+    ) arches |> List.flatten in
+  let p3_builds =
+    List.map (fun (f,arch) ->
+      let arch = OV.string_of_arch arch in
+      let tag = Fmt.strf "%s:%s-linux-%s" staging_hub_id f arch in
+      let label = Fmt.strf "%s %s" f arch in
+      let cmds = `A [
+        `String (Fmt.strf "buildkite-agent artifact download phase3-%s/Dockerfile.%s ." arch f);
+        `String (Fmt.strf "docker build --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
+        `String (Fmt.strf "docker push %s" tag)
+      ] in
+      `O [ "command", cmds;
+           "label", `String label;
+           "agents", `O [ "arch", `String arch ];
+           docker_login ]
+      ) p3
+  in
+  let wait = [`String "wait"] in
+  let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds) ] in
+  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:64000 yml)
 
 open Cmdliner
 
