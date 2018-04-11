@@ -19,6 +19,7 @@ steps:
         always_pull: true
         environment:
           - OPAMYES=1
+          - OPAMVERBOSE=1
           - OPAMJOBS=8
   - wait
   - command: 'echo All done'
