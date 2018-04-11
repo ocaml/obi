@@ -15,6 +15,7 @@ depends: [
   "lambdasoup"
   "uri"
   "ptime"
+  "yaml"
 ]
 build: [
   ["jbuilder" "subst" "-p" name "--name" name] {pinned}
