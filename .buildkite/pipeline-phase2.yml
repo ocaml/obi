@@ -2,6 +2,7 @@ steps:
   - label: 'Push'
     agents:
       arch: amd64
+    concurrency: 1
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4'
