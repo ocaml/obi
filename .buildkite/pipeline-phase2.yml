@@ -3,6 +3,7 @@ steps:
     agents:
       arch: amd64
     concurrency: 1
+    concurrency_group: 'opam/phase2'
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4'
