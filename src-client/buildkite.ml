@@ -46,10 +46,14 @@ let gen {staging_hub_id; results_dir; _} () =
             let label = Fmt.strf "%s %s" f arch in
             let cmds = `A [
               `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
-              `String (Fmt.strf "docker build --rm --no-cache -t %s -f phase1-%s/Dockerfile.%s" tag arch f);
-              `String (Fmt.strf "echo docker push %s" tag)
+              `String (Fmt.strf "docker build --rm --no-cache -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
+              `String (Fmt.strf "docker push %s" tag)
              ] in
-            `O [ "command", cmds; "label", `String label; "agents", `O [ "arch", `String arch ]  ]
+            `O [ "command", cmds;
+                 "label", `String label;
+                 "agents", `O [ "arch", `String arch ];
+                 "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ];
+               ]
           ) p1
          )
       ]
