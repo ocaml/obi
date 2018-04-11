@@ -62,11 +62,15 @@ let gen {staging_hub_id; results_dir; _} () =
   let p2_march =
     Hashtbl.fold (fun f arches acc ->
       let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
       ] in
-      `O [ "command", cmds; docker_login; "agents", `O [ "arch", `String "amd64" ]; ] :: acc) p2 [] in
+      `O [ "command", cmds;
+           "label", `String label;
+           "agents", `O [ "arch", `String "amd64" ];
+           docker_login] :: acc) p2 [] in
   let yml = `O [ "steps", `A (p1_builds @ [`String "wait"] @ p2_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn yml)
 
