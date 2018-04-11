@@ -4,7 +4,7 @@ steps:
       arch: amd64
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
-      - 'sudo apt update && sudo apt install -y m4'
+      - 'sudo apt update && sudo apt install -y m4 pkg-config'
       - 'opam pin add -n --dev dockerfile-opam'
       - 'opam pin add -n --dev ocaml-version'
       - 'opam install --deps-only /home/opam/src'
