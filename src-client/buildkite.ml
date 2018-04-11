@@ -23,6 +23,8 @@ type build_t = {ov: Ocaml_version.t; distro: D.t}
 
 let arches = [ `X86_64; `Aarch64 ]
 
+let docker_login = "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ]
+
 let gen {staging_hub_id; results_dir; _} () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let p1 =
@@ -37,27 +39,36 @@ let gen {staging_hub_id; results_dir; _} () =
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
     ) arches |> List.flatten in
-  let yml =
-      `O [ "steps",
-        `A (
-          List.map (fun (f,arch) ->
-            let arch = OV.string_of_arch arch in
-            let tag = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f arch in
-            let label = Fmt.strf "%s %s" f arch in
-            let cmds = `A [
-              `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
-              `String (Fmt.strf "docker build --rm --no-cache -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
-              `String (Fmt.strf "docker push %s" tag)
-             ] in
-            `O [ "command", cmds;
-                 "label", `String label;
-                 "agents", `O [ "arch", `String arch ];
-                 "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ];
-               ]
-          ) p1
-         )
-      ]
-    in
+  let p2 = Hashtbl.create 9 in
+  List.iter (fun (f,arch) ->
+    match Hashtbl.find p2 f with
+    | a -> Hashtbl.replace p2 f (arch :: a)
+    | exception Not_found -> Hashtbl.add p2 f [arch]) p1;
+  let p1_builds =
+    List.map (fun (f,arch) ->
+      let arch = OV.string_of_arch arch in
+      let tag = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f arch in
+      let label = Fmt.strf "%s %s" f arch in
+      let cmds = `A [
+        `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
+        `String (Fmt.strf "docker build --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
+        `String (Fmt.strf "docker push %s" tag)
+      ] in
+      `O [ "command", cmds;
+           "label", `String label;
+           "agents", `O [ "arch", `String arch ];
+           docker_login ]
+      ) p1
+  in
+  let p2_march =
+    Hashtbl.fold (fun f arches acc ->
+      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let cmds = `A [
+        `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
+      ] in
+      `O [ "command", cmds; docker_login ] :: acc) p2 [] in
+  let yml = `O [ "steps", `A (p1_builds @ [`String "wait"] @ p2_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn yml)
 
 open Cmdliner
