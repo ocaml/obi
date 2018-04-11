@@ -9,7 +9,6 @@ steps:
       - 'opam pin add -n --dev ocaml-version'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
-      - 'mkdir -p /home/opam/src/_logs/phase2'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-docker phase2 -vv'
     plugins:
       docker-login#v1.0.0:
@@ -18,6 +17,7 @@ steps:
         image: "ocaml/opam2-staging:debian-9-ocaml-4.06-linux-amd64"
         mounts:
           - /var/run/docker.sock:/var/run/docker.sock
+          - /usr/local/bin/manifest-tool:/usr/bin/manifest-tool
         workdir: /src
         always_pull: true
         environment:
