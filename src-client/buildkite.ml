@@ -33,7 +33,6 @@ let gen {staging_hub_id; results_dir; _} () =
       let prefix = Fmt.strf "phase1-%s" arch_s in
       let results_dir = Fpath.(results_dir / prefix) in
       ignore (Bos.OS.Dir.create ~path:true results_dir);
-      let tag s = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id s arch_s in
       let distros = List.filter (D.distro_supported_on arch OV.Releases.latest) (D.active_distros arch) in
       let dfiles = List.map O.gen_opam2_distro distros in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
@@ -67,7 +66,7 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
       ] in
-      `O [ "command", cmds; docker_login ] :: acc) p2 [] in
+      `O [ "command", cmds; docker_login; "agents", `O [ "arch", `String "amd64" ]; ] :: acc) p2 [] in
   let yml = `O [ "steps", `A (p1_builds @ [`String "wait"] @ p2_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn yml)
 
