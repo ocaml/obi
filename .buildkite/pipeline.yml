@@ -11,7 +11,7 @@ steps:
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite gen -vv'
-      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "phase1-*/*"'
+      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "phase*-*/*"'
       - 'cat /home/opam/src/_results/phase1.yml | buildkite-agent pipeline upload'
     plugins:
       docker#v1.1.1:
@@ -20,6 +20,6 @@ steps:
         always_pull: true
         environment:
           - OPAMYES=1
-          - OPAMJOBS=8
+          - OPAMJOBS=12
   - wait
   - command: 'echo All done'

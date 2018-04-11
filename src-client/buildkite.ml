@@ -47,7 +47,7 @@ let gen {staging_hub_id; results_dir; _} () =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
       let tag = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f arch in
-      let label = Fmt.strf "%s %s" f arch in
+      let label = Fmt.strf ":one: %s %s" f arch in
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
