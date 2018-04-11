@@ -7,6 +7,7 @@ steps:
       - 'sudo apt update && sudo apt install -y m4 pkg-config'
       - 'opam pin add -n --dev dockerfile-opam'
       - 'opam pin add -n --dev ocaml-version'
+      - 'opam pin add -n --dev yaml'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite gen -vv'
