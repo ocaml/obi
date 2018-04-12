@@ -24,6 +24,9 @@ type build_t = {ov: Ocaml_version.t; distro: D.t}
 let arches = [ `X86_64; `Aarch64 ]
 
 let docker_login = "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ]
+let concurrency num group =
+  [ "concurrency", `String (string_of_int num);
+  "concurrency_group", `String group ]
 
 let gen {staging_hub_id; results_dir; _} () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
@@ -53,10 +56,10 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
-      `O [ "command", cmds;
+      `O ([ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String arch ];
-           docker_login ]
+           docker_login ])
       ) p1
   in
   let p2_march =
@@ -67,10 +70,10 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker manifest create -a %s:%s-opam %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
       ] in
-      `O [ "command", cmds;
+      `O ([ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String "amd64" ];
-           docker_login] :: acc) p2 [] in
+           docker_login] @ (concurrency 1 "containers/ocaml")) :: acc) p2 [] in
   let p3 =
     List.map (fun arch ->
       let arch_s = OV.string_of_arch arch in
@@ -97,15 +100,32 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
-      `O [ "command", cmds;
+      `O ([ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String arch ];
-           docker_login ]
+           docker_login ])
       ) p3
   in
+  let p4 = Hashtbl.create 9 in
+  List.iter (fun (f,arch) ->
+    match Hashtbl.find p4 f with
+    | a -> Hashtbl.replace p4 f (arch :: a)
+    | exception Not_found -> Hashtbl.add p4 f [arch]) p3;
+  let p3_march =
+    Hashtbl.fold (fun f arches acc ->
+      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let label = Fmt.strf ":docker: %s" f in
+      let cmds = `A [
+        `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
+      ] in
+      `O ([ "command", cmds;
+           "label", `String label;
+           "agents", `O [ "arch", `String "amd64" ];
+           docker_login] @ (concurrency 1 "containers/ocaml")) :: acc) p4 [] in
   let wait = [`String "wait"] in
-  let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds) ] in
-  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:64000 yml)
+  let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march) ] in
+  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000  yml)
 
 open Cmdliner
 
