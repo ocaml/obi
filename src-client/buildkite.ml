@@ -40,6 +40,9 @@ an OPAM environment, and are particularly suitable for use with continuous integ
 systems such as [Travis CI](https://travis-ci.org).  All the containers are hosted
 on the [Docker Hub ocaml/opam2](http://hub.docker.com/r/ocaml/opam2) repository.
 
+**Note: this is still under development, so in the examples below you will need to use
+`ocaml/opam2-staging` instead of `ocaml/opam2` until we finish testing.**
+
 Using it is as simple as:
 
 ```
@@ -68,7 +71,7 @@ but bear in mind that it should be owned by the `opam` user (uid `1000` in all d
 
 ## Selecting a Specific Compiler
 
-The container comes with the latest compiler activated, but also a number of other switches for older revisions of OCaml.  You can
+The default container comes with the latest compiler activated, but also a number of other switches for older revisions of OCaml.  You can
 switch to these to test compatibility in CI by iterating through older revisions.
 
 For example:
