@@ -287,7 +287,6 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
  
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march @ p4_march @ p5_march @ p6_march) ] in
-  let yml = `O [ "steps", `A (p6_march) ] in (* temporary *)
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000 yml) >>= fun () ->
   Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
