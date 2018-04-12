@@ -73,7 +73,7 @@ let gen {staging_hub_id; results_dir; _} () =
       `O ([ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String "amd64" ];
-           docker_login] @ (concurrency 1 "containers/ocaml")) :: acc) p2 [] in
+           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p2 [] in
   let p3 =
     List.map (fun arch ->
       let arch_s = OV.string_of_arch arch in
@@ -117,14 +117,15 @@ let gen {staging_hub_id; results_dir; _} () =
       let label = Fmt.strf ":docker: %s" f in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id f l);
-        `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
+        `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id f)
       ] in
       `O ([ "command", cmds;
            "label", `String label;
            "agents", `O [ "arch", `String "amd64" ];
-           docker_login] @ (concurrency 1 "containers/ocaml")) :: acc) p4 [] in
+           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p4 [] in
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march) ] in
+  let yml = `O [ "steps", `A (p3_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000  yml)
 
 open Cmdliner
