@@ -28,6 +28,12 @@ let concurrency num group =
   [ "concurrency", `String (string_of_int num);
   "concurrency_group", `String group ]
 
+let docker_agents arch =
+   "agents", `O [ "arch", `String "amd64";
+                  "docker", `String "true";
+                  "pusher", `String "true";
+                  "os", `String "linux" ]
+
 let gen {staging_hub_id; results_dir; _} () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let p1 =
@@ -50,7 +56,7 @@ let gen {staging_hub_id; results_dir; _} () =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
       let tag = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f arch in
-      let label = Fmt.strf ":one: %s %s" f arch in
+      let label = Fmt.strf ":linux: %s %s" f arch in
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
@@ -58,7 +64,7 @@ let gen {staging_hub_id; results_dir; _} () =
       ] in
       `O ([ "command", cmds;
            "label", `String label;
-           "agents", `O [ "arch", `String arch ];
+           docker_agents arch;
            docker_login ])
       ) p1
   in
@@ -72,7 +78,7 @@ let gen {staging_hub_id; results_dir; _} () =
       ] in
       `O ([ "command", cmds;
            "label", `String label;
-           "agents", `O [ "arch", `String "amd64" ];
+           docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p2 [] in
   let p3 =
     List.map (fun arch ->
@@ -94,7 +100,7 @@ let gen {staging_hub_id; results_dir; _} () =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
       let tag = Fmt.strf "%s:%s-linux-%s" staging_hub_id f arch in
-      let label = Fmt.strf "%s %s" f arch in
+      let label = Fmt.strf ":camel: %s %s" f arch in
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase3-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
@@ -102,7 +108,7 @@ let gen {staging_hub_id; results_dir; _} () =
       ] in
       `O ([ "command", cmds;
            "label", `String label;
-           "agents", `O [ "arch", `String arch ];
+           docker_agents arch;
            docker_login ])
       ) p3
   in
@@ -121,11 +127,10 @@ let gen {staging_hub_id; results_dir; _} () =
       ] in
       `O ([ "command", cmds;
            "label", `String label;
-           "agents", `O [ "arch", `String "amd64" ];
+           docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p4 [] in
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march) ] in
-  let yml = `O [ "steps", `A (p3_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000  yml)
 
 open Cmdliner
