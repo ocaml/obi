@@ -31,8 +31,7 @@ let docs {prod_hub_id;_} =
     ) ds |> String.concat "\n" in
   let latest_distros = distros D.latest_distros in
   let active_distros = distros (D.active_distros `X86_64) in
-  let intro =  Fmt.strf {|
-# OCaml Container Infrastructure
+  let intro =  Fmt.strf {|# OCaml Container Infrastructure
 
 This repository contains a set of [Docker](http://docker.com) container definitions
 for various combination of [OCaml](https://ocaml.org) and the
@@ -76,7 +75,7 @@ For example:
 
 ```
 $ docker run %s opam switch
-#   switch  compiler                    description
+    switch  compiler                    description
     4.02    ocaml-base-compiler.4.02.3  4.02
     4.03    ocaml-base-compiler.4.03.0  4.03
     4.04    ocaml-base-compiler.4.04.2  4.04
@@ -92,7 +91,7 @@ Modern versions of OCaml also feature a number of variants, such as the experime
 
 ```
 $ docker run %s:ocaml-4.06 opam switch
-#   switch                      compiler                                     description
+    switch                      compiler                                     description
 ->  4.06                        ocaml-base-compiler.4.06.1                   4.06
     4.06+afl                    ocaml-variants.4.06.1+afl                    4.06+afl
     4.06+default-unsafe-string  ocaml-variants.4.06.1+default-unsafe-string  4.06+default-unsafe-string
