@@ -56,6 +56,7 @@ docker run %s:ubuntu opam depext -i cohttp-lwt-unix tls
 
 There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the Docker Hub.
 
+
 ## Using The Defaults
 
 The `%s` Docker remote has a default `latest` tag that provides the %s Linux distribution with the latest release of the OCaml compiler (%s).
@@ -64,6 +65,7 @@ The [opam-depext](https://github.com/ocaml/opam-depext) plugin can be used to in
 The default user is `opam` in the `/home/opam` directory, with a copy of the [opam-repository](https://github.com/ocaml/opam-repository)
 checked out in `/home/opam/opam-repository`.  You can supply your own source code by volume mounting it anywhere in the container,
 but bear in mind that it should be owned by the `opam` user (uid `1000` in all distributions).
+
 
 ## Selecting a Specific Compiler
 
@@ -100,6 +102,7 @@ $ docker run %s:ocaml-4.06 opam switch
 
 In this case, the `ocaml-4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
 
+
 ## Selecting Linux distributions
 
 There are also tags available to select other Linux distributions, which is useful to validate and test the behaviour of your package in CI.
@@ -115,13 +118,15 @@ Distribution | Tag | Architectures | Command
 ------------ | --- | ------------- | -------
 %s
 
+
 ## Multi-architecture Containers
 
 The observant reader will notice that the distributions listed above have more than one architecture.  We are building an increasing number of packages on non-x86 containers, starting with ARM64 and soon to include PPC64.
 
 Using the multiarch images is simple, as the correct one will be selected depending on your host architecture.  The images are built using [docker manifest](https://docs.docker.com/edge/engine/reference/commandline/manifest/).
 
-## Questions or Feedback
+
+## Questions and Feedback
 
 We are constantly improving and maintaining this infrastructure, so please get in touch with Anil Madhavapeddy `<anil@recoil.org>` if you have any questions or requests for improvement.  Note that until opam 2.0 is released, this infrastructure is considered to be in a beta stage and subject to change.
 
