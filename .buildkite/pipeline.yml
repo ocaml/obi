@@ -31,7 +31,9 @@ steps:
     - 'git config --global user.email "bactrian@ocaml.org"'
     - 'git config --global user.name "Bactrian the Build Bot"'
     - 'cd containers && git commit -m rebuild -a'
-    - 'cd containers && git push'
+    - 'git push'
     label: ':rocket: README'
+    concurrency: 1
+    concurrency_group: "push/containers"
     agents:
       githubpusher: true
