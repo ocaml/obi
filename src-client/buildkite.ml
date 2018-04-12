@@ -56,7 +56,7 @@ docker run %s:ubuntu opam depext -i cohttp-lwt-unix tls
 
 There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the Docker Hub.
 
-## The Defaults
+## Using The Defaults
 
 The `%s` Docker remote has a default `latest` tag that provides the %s Linux distribution with the latest release of the OCaml compiler (%s).
 The [opam-depext](https://github.com/ocaml/opam-depext) plugin can be used to install external system libraries in a distro-portable way.
@@ -117,13 +117,15 @@ Distribution | Tag | Architectures | Command
 
 ## Multi-architecture Containers
 
-The observant reader will notice that the distributions listed above have more than one architecture.  We are building an increasing number of packages on non-x86 containers, starting with ARM64 and soon to include PPC64.  This is all possible thanks to generous infrastructure contributions from [Packet.net](https://www.packet.net), [IBM](http://ibm.com), [Azure](https://azure.microsoft.com/en-gb/) and [Rackspace](http://rackspace.com), as well as a dedicated machine cluster funded by [Jane Street](http://janestreet.com).
+The observant reader will notice that the distributions listed above have more than one architecture.  We are building an increasing number of packages on non-x86 containers, starting with ARM64 and soon to include PPC64.
 
 Using the multiarch images is simple, as the correct one will be selected depending on your host architecture.  The images are built using [docker manifest](https://docs.docker.com/edge/engine/reference/commandline/manifest/).
 
 ## Questions or Feedback
 
 We are constantly improving and maintaining this infrastructure, so please get in touch with Anil Madhavapeddy `<anil@recoil.org>` if you have any questions or requests for improvement.  Note that until opam 2.0 is released, this infrastructure is considered to be in a beta stage and subject to change.
+
+This is all possible thanks to generous infrastructure contributions from [Packet.net](https://www.packet.net), [IBM](http://ibm.com), [Azure](https://azure.microsoft.com/en-gb/) and [Rackspace](http://rackspace.com), as well as a dedicated machine cluster funded by [Jane Street](http://janestreet.com).  The Docker Hub also provides a huge amount of storage space for our containers.  We use hundreds of build agents running on [BuildKite](http://buildkite.com) in order to regularly generate the large volume of updates that this infrastructure needs, including the multiarch builds.
 
   |} prod_hub_id prod_hub_id prod_hub_id prod_hub_id (D.human_readable_string_of_distro D.master_distro) OV.(to_string Releases.latest) prod_hub_id prod_hub_id latest_distros active_distros in
   intro
