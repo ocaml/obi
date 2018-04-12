@@ -26,8 +26,8 @@ let docs {prod_hub_id;_} =
     List.map (fun distro ->
       let name = D.human_readable_string_of_distro distro in
       let tag = D.tag_of_distro distro in
-      let arches = String.concat " " (List.map (function |`X86_64 -> "amd64"|`Aarch64 -> "arm64") (D.distro_arches OV.Releases.latest distro)) in
-      Fmt.strf "| %s | %s | %s | `docker run %s:%s`" name tag arches prod_hub_id tag
+      let arches = String.concat " " (List.map OV.string_of_arch (D.distro_arches OV.Releases.latest distro)) in
+      Fmt.strf "| %s | `%s` | %s | `docker run %s:%s`" name tag arches prod_hub_id tag
     ) ds |> String.concat "\n" in
   let latest_distros = distros D.latest_distros in
   let active_distros = distros (D.active_distros `X86_64) in
@@ -51,13 +51,13 @@ docker pull %s
 docker run -it %s bash
 ```
 
-...to get an interactive development environment.  You can grab a specific OS distribution and test out external dependencies as well:
+This will get you an interactive development environment (including on [Docker for Mac](https://www.docker.com/docker-mac)).  You can grab a specific OS distribution and test out external dependencies as well:
 
 ```
 docker run %s:ubuntu opam depext -i cohttp-lwt-unix tls
 ```
 
-There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the Docker Hub.
+There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the [Docker Hub](http://hub.docker.com/r/ocaml/opam2).
 
 
 Using The Defaults
@@ -94,10 +94,10 @@ Note that the name of the switch drops the minor patch release (e.g. `4.06` _vs_
 Accessing Compiler Variants
 ===========================
 
-Modern versions of OCaml also feature a number of variants, such as the experimental flambda inliner or [AFL fuzzing](http://lcamtuf.coredump.cx/afl/) support.  These are also conveniently available using the `ocaml-<VERSION>` tag. For example:
+Modern versions of OCaml also feature a number of variants, such as the experimental flambda inliner or [AFL fuzzing](http://lcamtuf.coredump.cx/afl/) support.  These are also conveniently available using the `<VERSION>` tag. For example:
 
 ```
-$ docker run %s:ocaml-4.06 opam switch
+$ docker run %s:4.06 opam switch
     switch                      compiler                                     description
 ->  4.06                        ocaml-base-compiler.4.06.1                   4.06
     4.06+afl                    ocaml-variants.4.06.1+afl                    4.06+afl
@@ -106,7 +106,7 @@ $ docker run %s:ocaml-4.06 opam switch
     4.06+force-safe-string      ocaml-variants.4.06.1+force-safe-string      4.06+force-safe-string
 ```
 
-In this case, the `ocaml-4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
+In this case, the `4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
 
 
 Selecting Linux Distributions
@@ -285,7 +285,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let f = Fmt.strf "%s-ocaml-%s" (D.tag_of_distro distro) (OV.to_string ov) in
       let arches = Hashtbl.find p4 f in
       let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
-      let tag = Fmt.strf "ocaml-%s" (OV.to_string ov) in
+      let tag = Fmt.strf "%s" (OV.to_string ov) in
       let label = Fmt.strf ":docker: %s" tag in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
