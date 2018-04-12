@@ -32,13 +32,16 @@ let docs {prod_hub_id;_} =
   let latest_distros = distros D.latest_distros in
   let active_distros = distros (D.active_distros `X86_64) in
   let intro =  Fmt.strf {|
-# OCaml Containers
+# OCaml Container Infrastructure
 
 This repository contains a set of [Docker](http://docker.com) container definitions
 for various combination of [OCaml](https://ocaml.org) and the
 [OPAM](https://opam.ocaml.org) package manager.  The containers come preinstalled with
 an OPAM environment, and are particularly suitable for use with continuous integration
-systems such as [Travis CI](https://travis-ci.org).  Using it as simple as:
+systems such as [Travis CI](https://travis-ci.org).  All the containers are hosted
+on the [Docker Hub ocaml/opam2](http://hub.docker.com/r/ocaml/opam2) repository.
+
+Using it is as simple as:
 
 ```
 docker pull %s

@@ -26,7 +26,8 @@ steps:
   - command:
     - 'rm -rf containers/'
     - 'git clone git@github.com:ocaml/containers'
-    - 'buildkit-agent artifact download "README.md" containers/'
+    - 'buildkite-agent artifact download "README.md" containers/'
+    - 'find .'
     - 'cd containers && git commit -m rebuild -a'
     - 'cd containers && git push'
     label: ':rocket: README'
