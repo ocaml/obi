@@ -106,10 +106,7 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker build --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
-      `O ([ "command", cmds;
-           "label", `String label;
-           docker_agents arch;
-           docker_login ])
+      `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ])
       ) p3
   in
   let p4 = Hashtbl.create 9 in
@@ -125,12 +122,55 @@ let gen {staging_hub_id; results_dir; _} () =
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id f)
       ] in
-      `O ([ "command", cmds;
-           "label", `String label;
-           docker_agents "amd64";
+      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p4 [] in
+  let p4_march =
+    List.fold_left (fun acc ldistro ->
+      let distro = D.resolve_alias ldistro in
+      let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
+      let arches = Hashtbl.find p4 f in
+      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let tag = D.tag_of_distro ldistro in
+      let label = Fmt.strf ":docker: %s" tag in
+      let cmds = `A [
+        `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
+      ] in
+      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
+    [] D.latest_distros in
+  let p5_march =
+    List.fold_left (fun acc ov ->
+      let ov = OV.with_patch ov None in
+      let distro = D.resolve_alias (`Debian `Stable) in
+      let f = Fmt.strf "%s-ocaml-%s" (D.tag_of_distro distro) (OV.to_string ov) in
+      let arches = Hashtbl.find p4 f in
+      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let tag = Fmt.strf "ocaml-%s" (OV.to_string ov) in
+      let label = Fmt.strf ":docker: %s" tag in
+      let cmds = `A [
+        `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
+      ] in
+      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
+     [] OV.Releases.recent in
+  let p6_march =
+    let distro = D.resolve_alias (`Debian `Stable) in
+    let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
+    let arches = Hashtbl.find p4 f in
+    let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+    let label = Fmt.strf ":docker: latest" in
+    let tag = "latest" in
+    let cmds = `A [
+        `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
+    ] in
+    [`O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+           docker_login] @ (concurrency 5 "containers/ocaml")) ] in
+ 
   let wait = [`String "wait"] in
-  let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march) ] in
+  let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march @ p4_march @ p5_march @ p6_march) ] in
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000  yml)
 
 open Cmdliner
