@@ -14,6 +14,8 @@ steps:
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "phase*-*/*"'
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "README.md"'
       - 'cat /home/opam/src/_results/phase1.yml | buildkite-agent pipeline upload'
+    concurrency: 1
+    concurrency_group: "opam/build"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
@@ -34,6 +36,6 @@ steps:
     - 'git push'
     label: ':rocket: README'
     concurrency: 1
-    concurrency_group: "push/containers"
+    concurrency_group: "opam/push"
     agents:
       githubpusher: true

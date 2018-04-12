@@ -198,7 +198,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":linux: %s %s" f arch in
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
-        `String (Fmt.strf "docker build --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
+        `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
       `O ([ "command", cmds;
@@ -242,7 +242,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":camel: %s %s" f arch in
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase3-%s/Dockerfile.%s ." arch f);
-        `String (Fmt.strf "docker build --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
+        `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
       `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ])
