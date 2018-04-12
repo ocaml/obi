@@ -21,6 +21,110 @@ let copts staging_hub_id prod_hub_id results_dir =
 
 type build_t = {ov: Ocaml_version.t; distro: D.t}
 
+let docs {prod_hub_id;_} =
+  let distros ds =
+    List.map (fun distro ->
+      let name = D.human_readable_string_of_distro distro in
+      let tag = D.tag_of_distro distro in
+      let arches = String.concat " " (List.map (function |`X86_64 -> "amd64"|`Aarch64 -> "arm64") (D.distro_arches OV.Releases.latest distro)) in
+      Fmt.strf "| %s | %s | %s | `docker run %s:%s`" name tag arches prod_hub_id tag
+    ) ds |> String.concat "\n" in
+  let latest_distros = distros D.latest_distros in
+  let active_distros = distros (D.active_distros `X86_64) in
+  let intro =  Fmt.strf {|
+# OCaml Containers
+
+This repository contains a set of [Docker](http://docker.com) container definitions
+for various combination of [OCaml](https://ocaml.org) and the
+[OPAM](https://opam.ocaml.org) package manager.  The containers come preinstalled with
+an OPAM environment, and are particularly suitable for use with continuous integration
+systems such as [Travis CI](https://travis-ci.org).  Using it as simple as:
+
+```
+docker pull %s
+docker run -it %s bash
+```
+
+...to get an interactive development environment.  You can grab a specific OS distribution and test out external dependencies as well:
+
+```
+docker run %s:ubuntu opam depext -i cohttp-lwt-unix tls
+```
+
+There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the Docker Hub.
+
+## The Defaults
+
+The `%s` Docker remote has a default `latest` tag that provides the %s Linux distribution with the latest release of the OCaml compiler (%s).
+The [opam-depext](https://github.com/ocaml/opam-depext) plugin can be used to install external system libraries in a distro-portable way.
+
+The default user is `opam` in the `/home/opam` directory, with a copy of the [opam-repository](https://github.com/ocaml/opam-repository)
+checked out in `/home/opam/opam-repository`.  You can supply your own source code by volume mounting it anywhere in the container,
+but bear in mind that it should be owned by the `opam` user (uid `1000` in all distributions).
+
+## Selecting a Specific Compiler
+
+The container comes with the latest compiler activated, but also a number of other switches for older revisions of OCaml.  You can
+switch to these to test compatibility in CI by iterating through older revisions.
+
+For example:
+
+```
+$ docker run %s opam switch
+#   switch  compiler                    description
+    4.02    ocaml-base-compiler.4.02.3  4.02
+    4.03    ocaml-base-compiler.4.03.0  4.03
+    4.04    ocaml-base-compiler.4.04.2  4.04
+    4.05    ocaml-base-compiler.4.05.0  4.05
+->  4.06    ocaml-base-compiler.4.06.1  4.06
+```
+
+Note that the name of the switch drops the minor patch release (e.g. `4.06` _vs_ `4.06.1`), since you should always be using the latest patch revision of the compiler.
+
+## Accessing Compiler Variants
+
+Modern versions of OCaml also feature a number of variants, such as the experimental flambda inliner or [AFL fuzzing](http://lcamtuf.coredump.cx/afl/) support.  These are also conveniently available using the `ocaml-<VERSION>` tag. For example:
+
+```
+$ docker run %s:ocaml-4.06 opam switch
+#   switch                      compiler                                     description
+->  4.06                        ocaml-base-compiler.4.06.1                   4.06
+    4.06+afl                    ocaml-variants.4.06.1+afl                    4.06+afl
+    4.06+default-unsafe-string  ocaml-variants.4.06.1+default-unsafe-string  4.06+default-unsafe-string
+    4.06+flambda                ocaml-variants.4.06.1+flambda                4.06+flambda
+    4.06+force-safe-string      ocaml-variants.4.06.1+force-safe-string      4.06+force-safe-string
+```
+
+In this case, the `ocaml-4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
+
+## Selecting Linux distributions
+
+There are also tags available to select other Linux distributions, which is useful to validate and test the behaviour of your package in CI.
+
+Distribution | Tag | Architectures | Command
+------------ | --- | ------------- | -------
+%s
+
+The tags above are for the latest version of the distribution, and are upgraded to the latest upstream stable releases.  You can also select a specific version number in the tag name to obtain a particular OS release.  However, these will eventually time out once they are out of their support window, so try to use the version-free aliases described earlier unless you really know that you want a specific release.  When a specific release does time out, the container will be replaced by one that always displays an error message requesting you to upgrade your CI script.
+
+
+Distribution | Tag | Architectures | Command
+------------ | --- | ------------- | -------
+%s
+
+## Multi-architecture Containers
+
+The observant reader will notice that the distributions listed above have more than one architecture.  We are building an increasing number of packages on non-x86 containers, starting with ARM64 and soon to include PPC64.  This is all possible thanks to generous infrastructure contributions from [Packet.net](https://www.packet.net), [IBM](http://ibm.com), [Azure](https://azure.microsoft.com/en-gb/) and [Rackspace](http://rackspace.com), as well as a dedicated machine cluster funded by [Jane Street](http://janestreet.com).
+
+Using the multiarch images is simple, as the correct one will be selected depending on your host architecture.  The images are built using [docker manifest](https://docs.docker.com/edge/engine/reference/commandline/manifest/).
+
+## Questions or Feedback
+
+We are constantly improving and maintaining this infrastructure, so please get in touch with Anil Madhavapeddy `<anil@recoil.org>` if you have any questions or requests for improvement.  Note that until opam 2.0 is released, this infrastructure is considered to be in a beta stage and subject to change.
+
+  |} prod_hub_id prod_hub_id prod_hub_id prod_hub_id (D.human_readable_string_of_distro D.master_distro) OV.(to_string Releases.latest) prod_hub_id prod_hub_id latest_distros active_distros in
+  intro
+
 let arches = [ `X86_64; `Aarch64 ]
 
 let docker_login = "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ]
@@ -34,7 +138,7 @@ let docker_agents arch =
                   "pusher", `String "true";
                   "os", `String "linux" ]
 
-let gen {staging_hub_id; results_dir; _} () =
+let gen ({staging_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let p1 =
     List.map (fun arch ->
@@ -171,7 +275,9 @@ let gen {staging_hub_id; results_dir; _} () =
  
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march @ p4_march @ p5_march @ p6_march) ] in
-  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000  yml)
+  let yml = `O [ "steps", `A (p6_march) ] in (* temporary *)
+  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000 yml) >>= fun () ->
+  Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
 open Cmdliner
 
