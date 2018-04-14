@@ -190,7 +190,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
       `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s opam list --installable --all-versions -s > %s/pkgs.txt" tag tag);
+      `String (Fmt.strf "docker run %s:%s opam list --installable --all-versions -s > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
