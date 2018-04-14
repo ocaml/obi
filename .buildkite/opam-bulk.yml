@@ -21,3 +21,6 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=12
+              plugins:
+      docker-login#v1.0.0:
+        username: avsm
