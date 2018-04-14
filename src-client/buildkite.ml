@@ -187,7 +187,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   ignore(G.generate_dockerfiles ~crunch:false dir dfiles);
   let cmds =
     `A [
-      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %a/Dockerfile.%s" staging_hub_id tag Fpath.pp dir opam_repo_rev);
+      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %a/Dockerfile.%s %a" staging_hub_id tag Fpath.pp dir opam_repo_rev Fpath.pp dir);
       `String (Fmt.strf "docker push %s" tag);
       `String (Fmt.strf "docker run %s opam list --installable --all-versions -s > %a/pkgs.txt" tag Fpath.pp dir);
       `String (Fmt.strf "buildkite-agent artifact upload %a/pkgs.txt" Fpath.pp dir);
