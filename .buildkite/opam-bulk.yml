@@ -9,6 +9,7 @@ steps:
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk -vv'
+      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "*"'
       - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
     concurrency: 1
     concurrency_group: "opam/bulk"
