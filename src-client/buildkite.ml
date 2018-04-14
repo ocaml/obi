@@ -188,7 +188,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   let cmds =
     `A [
       `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
-      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %a/Dockerfile.%s ." staging_hub_id tag Fpath.pp dir opam_repo_rev);
+      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s" tag);
       `String (Fmt.strf "docker run %s opam list --installable --all-versions -s > %s/pkgs.txt" tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
