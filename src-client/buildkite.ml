@@ -176,7 +176,7 @@ let docker_agents arch =
 let bulk ({staging_hub_id; results_dir; _}) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let opam_repo_rev = "master" in
-  let distro = `Debian `Stable in
+  let distro = D.resolve_alias (`Debian `Stable) in
   let arch = `X86_64 in
   let ov = OV.(with_patch Releases.latest None) in
   let dfiles = O.bulk_build staging_hub_id distro ov opam_repo_rev in
