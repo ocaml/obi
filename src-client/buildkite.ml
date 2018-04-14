@@ -173,6 +173,29 @@ let docker_agents arch =
                   "pusher", `String "true";
                   "os", `String "linux" ]
 
+let bulk ({staging_hub_id; results_dir; _}) () =
+  ignore (Bos.OS.Dir.create ~path:true results_dir);
+  let opam_repo_rev = "master" in
+  let distro = `Debian `Stable in
+  let arch = `X86_64 in
+  let ov = OV.(with_patch Releases.latest None) in
+  let dfiles = O.bulk_build staging_hub_id distro ov opam_repo_rev in
+  let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
+  let label = Fmt.strf "Bulk %s %s %s: %s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
+  let dir = Fpath.(results_dir / tag) in
+  ignore (Bos.OS.Dir.create ~path:true dir);
+  ignore(G.generate_dockerfiles ~crunch:false dir dfiles);
+  let cmds =
+    `A [
+      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %a/Dockerfile.%s" staging_hub_id tag Fpath.pp dir opam_repo_rev);
+      `String (Fmt.strf "docker push %s" tag);
+      `String (Fmt.strf "docker run %s opam list --installable --all-versions -s > %a/pkgs.txt" tag Fpath.pp dir);
+      `String (Fmt.strf "buildkite-agent artifact upload %a/pkgs.txt" Fpath.pp dir);
+    ] in
+  let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
+  let yml = `O [ "steps", `A [ p1_builds ] ] in
+  Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:128000 yml)
+
 let gen ({staging_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let p1 =
@@ -344,6 +367,16 @@ let copts_t =
   let open Term in
   const copts $ staging_hub_id $ prod_hub_id $ results_dir
 
+let bulk_cmd =
+  let doc = "perform a bulk build of the opam repository" in
+  let exits = Term.default_exits in
+  let man =
+    [ `S Manpage.s_description
+    ; `P "Perform a bulk build of the opam packages" ]
+  in
+  ( Term.(term_result (const bulk $ copts_t $ setup_logs))
+  , Term.info "bulk" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+
 
 let gen_cmd =
   let doc = "generate, build and push base opam container images" in
@@ -362,8 +395,6 @@ let default_cmd =
   , Term.info "obi-docker" ~version:"v1.0.0" ~doc ~sdocs )
 
 
-let cmds =
-  [ gen_cmd
-  ]
+let cmds = [ gen_cmd; bulk_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)

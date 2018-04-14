@@ -1,0 +1,22 @@
+steps:
+  - label: 'Opam Repo Rev'
+    command:
+      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
+      - 'sudo apt update && sudo apt install -y m4 pkg-config'
+      - 'opam pin add -n --dev dockerfile-opam'
+      - 'opam pin add -n --dev ocaml-version'
+      - 'opam pin add -n --dev yaml'
+      - 'opam install --deps-only /home/opam/src'
+      - 'cd /home/opam/src && opam exec -- jbuilder build'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk -vv'
+      - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
+    concurrency: 1
+    concurrency_group: "opam/bulk"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging"
+        workdir: /src
+        always_pull: true
+        environment:
+          - OPAMYES=1
+          - OPAMJOBS=12
