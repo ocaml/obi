@@ -185,7 +185,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
     copy ~src:["opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
     run "sudo chmod a+x /usr/bin/opam-ci-install"
   in
-  let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
+  let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov |> String.map (function '+' -> '-' | x -> x)) (OV.string_of_arch arch) opam_repo_rev in
   let label = Fmt.strf "Bulk %s %s %s: %s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
   let dir = Fpath.(results_dir / tag) in
   ignore (Bos.OS.Dir.create ~path:true dir);
