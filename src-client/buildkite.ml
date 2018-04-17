@@ -245,6 +245,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create -a %s:%s-opam %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest inspect %s:%s-opam" staging_hub_id f);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
       ] in
       `O ([ "command", cmds;
@@ -291,6 +292,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":docker: %s" f in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id f);
         `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id f)
       ] in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
@@ -305,6 +307,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":docker: %s" tag in
       let cmds = `A [
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
         `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
       ] in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
