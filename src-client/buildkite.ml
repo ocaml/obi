@@ -186,7 +186,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir dfiles);
   let bulk_tmpl =
-    let cmds = `String (Fmt.strf "echo docker run --rm %s:%s opam depext -i __PKG__" staging_hub_id tag) in
+    let cmds = `String (Fmt.strf "docker run --rm %s:%s opam depext -j3 -i __PKG__" staging_hub_id tag) in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
