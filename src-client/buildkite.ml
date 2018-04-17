@@ -182,7 +182,8 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   let dfiles = 
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
-    copy ~src:["opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" ()
+    copy ~src:["opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
+    run "sudo chmod a+x /usr/bin/opam-ci-install"
   in
   let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
   let label = Fmt.strf "Bulk %s %s %s: %s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
@@ -190,7 +191,11 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir [ opam_repo_rev, dfiles] );
   let bulk_tmpl =
-    let cmds = `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__" staging_hub_id tag) in
+    let cmds = `A [
+      `String (Fmt.strf "docker pull %s:%s" staging_hub_id tag);
+      `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__ > __PKG__.txt" staging_hub_id tag);
+      `String (Fmt.strf "buildkite-agent artifact upload __PKG__.txt")
+    ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
