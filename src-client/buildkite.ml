@@ -179,25 +179,30 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   let distro = D.resolve_alias (`Debian `Stable) in
   let arch = `X86_64 in
   let ov = OV.(with_patch Releases.latest None) in
-  let dfiles = O.bulk_build staging_hub_id distro ov opam_repo_rev in
+  let dfiles = 
+    let open Dockerfile in
+    O.bulk_build staging_hub_id distro ov opam_repo_rev @@
+    copy ~src:["opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" ()
+  in
   let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
   let label = Fmt.strf "Bulk %s %s %s: %s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
   let dir = Fpath.(results_dir / tag) in
   ignore (Bos.OS.Dir.create ~path:true dir);
-  ignore(G.generate_dockerfiles ~crunch:false dir dfiles);
+  ignore(G.generate_dockerfiles ~crunch:false dir [ opam_repo_rev, dfiles] );
   let bulk_tmpl =
-    let cmds = `String (Fmt.strf "docker run --rm %s:%s opam depext -j3 -i __PKG__" staging_hub_id tag) in
+    let cmds = `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__'" staging_hub_id tag) in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
   let cmds =
     `A [
       `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
+      `String (Fmt.strf "buildkite-agent artifact download 'opam-ci-install' .");
       `String (Fmt.strf "docker build --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
       `String (Fmt.strf "docker run %s:%s opam list --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
-      `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
+      `String (Fmt.strf "head -5 %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml && cat all.yml" tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" )
     ] in

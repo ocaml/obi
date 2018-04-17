@@ -256,7 +256,7 @@ module Phases = struct
     let prefix = phase5_prefix ~distro ~ov ~arch ~opam_repo_rev in
     setup_log_dirs ~prefix build_dir logs_dir
     @@ fun build_dir logs_dir ->
-    let dfiles = O.bulk_build prod_hub_id distro ov opam_repo_rev in
+    let dfiles = [opam_repo_rev, O.bulk_build prod_hub_id distro ov opam_repo_rev] in
     G.generate_dockerfiles ~crunch:false build_dir dfiles
     >>= fun () ->
     if_opt build

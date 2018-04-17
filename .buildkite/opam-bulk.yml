@@ -2,6 +2,7 @@ steps:
   - label: 'Opam Repo Rev'
     command:
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
+      - 'cd /home/opam/src/scripts && buildkite-agent artifact upload scripts/opam-ci-install'
       - 'sudo apt update && sudo apt install -y m4 pkg-config'
       - 'opam pin add -n --dev dockerfile-opam'
       - 'opam pin add -n --dev ocaml-version'
