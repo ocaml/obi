@@ -193,8 +193,9 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   let bulk_tmpl =
     let cmds = `A [
       `String (Fmt.strf "docker pull %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__ > __PKG__.txt" staging_hub_id tag);
-      `String (Fmt.strf "buildkite-agent artifact upload __PKG__.txt")
+      `String (Fmt.strf "mkdir -p %s/results" tag);
+      `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__ > %s/results/__PKG__.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "buildkite-agent artifact upload %s/results/__PKG__.txt" tag)
     ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
@@ -209,10 +210,17 @@ let bulk ({staging_hub_id; results_dir; _}) () =
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "head -5 %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml && cat all.yml" tag);
-      `String (Fmt.strf "buildkite-agent pipeline upload all.yml" )
+      `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
-  let yml = `O [ "steps", `A [ p1_builds ] ] in
+  let gather_cmds = `A [
+    `String (Fmt.strf "mkdir -p results-%s" tag);
+    `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' results-%s" tag tag);
+    `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 results-%s" tag tag);
+    `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
+  ] in
+  let gather = [ `O (["command", gather_cmds; "label", `String "Gather Results"]) ] in
+  let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:128000 yml)
 
 let gen ({staging_hub_id; results_dir; _} as opts) () =
