@@ -198,7 +198,7 @@ let bulk ({staging_hub_id; results_dir; _}) () =
       `String (Fmt.strf "docker run %s:%s opam list --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
-      `String (Fmt.strf "cat %s/build-*.yml > all.yml && cat all.yml" tag);
+      `String (Fmt.strf "echo steps: > all.yml && grep -v ^steps: %s/build-*.yml >> all.yml && cat all.yml" tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" )
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
