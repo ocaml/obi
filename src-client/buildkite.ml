@@ -186,11 +186,9 @@ let bulk ({staging_hub_id; results_dir; _}) () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir dfiles);
   let bulk_tmpl =
-    let cmds = `A [
-      `String (Fmt.strf "buildkite-agent artifact download '%s/pkgs.txt ." tag);
-      `String (Fmt.strf "awk \"NR == ${BUILDKITE_PARALLEL_JOB}\" | xargs -n 1 echo docker run --rm %s:%s opam depext -i " staging_hub_id tag) ] in
-    let label = `String "%n" in
-    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch; "parallelism", `String "__LEN__" ] ] ] in
+    let cmds = `String (Fmt.strf "echo docker run --rm %s:%s opam depext -i __PKG__" staging_hub_id tag) in
+    let label = `String "__PKG__" in
+    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
   let cmds =
     `A [
@@ -199,7 +197,8 @@ let bulk ({staging_hub_id; results_dir; _}) () =
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
       `String (Fmt.strf "docker run %s:%s opam list --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
-      `String (Fmt.strf "cat %s/pkgs.txt | wc -l | xargs -n 1 -ILINES sed -e 's/__LEN__/LINES/g' < %s/template.yml > all.yml" tag tag);
+      `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
+      `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml && cat all.yml" tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" )
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
