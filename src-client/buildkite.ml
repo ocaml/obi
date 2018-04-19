@@ -266,11 +266,13 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
+      let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s" staging_hub_id f tag (OV.string_of_arch arch))) tags arches in
       let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest create -a %s:%s-opam %s" staging_hub_id f l);
-        `String (Fmt.strf "docker manifest inspect %s:%s-opam" staging_hub_id f);
-        `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
+        `String (Fmt.strf "docker manifest push -p %s:%s-opam || true" staging_hub_id f); 
+        `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
+      ] @ annotates @ [
+        `String (Fmt.strf "docker manifest push -p %s:%s-opam" staging_hub_id f)
       ]) in
       `O ([ "command", cmds;
            "label", `String label;
