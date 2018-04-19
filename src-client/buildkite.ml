@@ -226,7 +226,7 @@ let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
   ] in
   let gather = [ `O (["command", gather_cmds; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
-  Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:128000 yml)
+  Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)
 
 let gen ({staging_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
@@ -389,7 +389,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
  
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march @ p4_march @ p5_march @ p6_march) ] in
-  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:128000 yml) >>= fun () ->
+  Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:256000 yml) >>= fun () ->
   Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
 open Cmdliner
