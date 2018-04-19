@@ -171,8 +171,10 @@ let docker_agents arch =
   "agents", `O [ "arch", `String arch;
                   "docker", `String "true";
                   "pusher", `String "true";
-                  "os", `String "linux";
-                  "retry", `O [ "automatic", `Bool true ] ]
+                  "os", `String "linux"; ]
+
+let retry () =
+  "retry", `O [ "automatic", `Bool true ]
 
 let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
@@ -199,7 +201,7 @@ let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact upload %s/results/__PKG__.txt" tag)
     ] in
     let label = `String "__PKG__" in
-    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents (OV.string_of_arch arch) ] ] ] in
+    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
   let cmds =
     `A [
@@ -213,7 +215,7 @@ let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml" tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
     ] in
-  let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents (OV.string_of_arch arch); docker_login ]) in
+  let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
   let gather_cmds = `A [
     `String (Fmt.strf "mkdir -p results-%s" tag);
     `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' results-%s" tag tag);
@@ -257,7 +259,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker push %s" tag)
       ] in
       `O ([ "command", cmds;
-           "label", `String label;
+           "label", `String label; retry ();
            docker_agents arch;
            docker_login ])
       ) p1
@@ -277,7 +279,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest push -p %s:%s-opam" staging_hub_id f)
       ]) in
       `O ([ "command", cmds;
-           "label", `String label;
+           "label", `String label; retry ();
            docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p2 [] in
   let p3 =
@@ -306,7 +308,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
         `String (Fmt.strf "docker push %s" tag)
       ] in
-      `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ])
+      `O ([ "command", cmds; "label", `String label; retry (); docker_agents arch; docker_login ])
       ) p3
   in
   let p4 = Hashtbl.create 9 in
@@ -328,7 +330,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id f);
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id f)
       ]) in
-      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+      `O ([ "command", cmds; "label", `String label; retry (); docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p4 [] in
   let p4_march =
     List.fold_left (fun acc ldistro ->
@@ -348,7 +350,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
       ]) in
-      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+      `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
     [] D.latest_distros in
   let p5_march =
@@ -370,7 +372,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
       ]) in
-      `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+      `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
      [] OV.Releases.recent in
   let p6_march =
@@ -384,7 +386,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
         `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
     ] in
-    [`O ([ "command", cmds; "label", `String label; docker_agents "amd64";
+    [`O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
            docker_login] @ (concurrency 5 "containers/ocaml")) ] in
  
   let wait = [`String "wait"] in
