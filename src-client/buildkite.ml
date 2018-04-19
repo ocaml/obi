@@ -263,13 +263,15 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
   in
   let p2_march =
     Hashtbl.fold (fun f arches acc ->
-      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let tags = List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
+      let l = String.concat " " tags in
+      let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
       let label = Fmt.strf ":docker: %s-opam" f in
-      let cmds = `A [
+      let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest create -a %s:%s-opam %s" staging_hub_id f l);
         `String (Fmt.strf "docker manifest inspect %s:%s-opam" staging_hub_id f);
         `String (Fmt.strf "docker manifest push %s:%s-opam" staging_hub_id f)
-      ] in
+      ]) in
       `O ([ "command", cmds;
            "label", `String label;
            docker_agents "amd64";
@@ -324,14 +326,16 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let distro = D.resolve_alias ldistro in
       let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
       let arches = Hashtbl.find p4 f in
-      let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
+      let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
+      let l = String.concat " " tags in
+      let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
       let tag = D.tag_of_distro ldistro in
       let label = Fmt.strf ":docker: %s" tag in
-      let cmds = `A [
+      let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
         `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
         `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
-      ] in
+      ]) in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64";
            docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
     [] D.latest_distros in
