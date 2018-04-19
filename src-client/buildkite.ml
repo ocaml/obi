@@ -173,12 +173,12 @@ let docker_agents arch =
                   "pusher", `String "true";
                   "os", `String "linux" ]
 
-let bulk ({staging_hub_id; results_dir; _}) () =
+let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
-  let opam_repo_rev = "master" in
   let distro = D.resolve_alias (`Debian `Stable) in
+  let variant = None in
   let arch = `X86_64 in
-  let ov = OV.(with_patch Releases.latest None |> fun ov -> with_variant ov (Some "default-unsafe-string")) in
+  let ov = OV.(with_patch Releases.latest None |> fun ov -> with_variant ov variant) in
   let dfiles = 
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
@@ -217,6 +217,10 @@ let bulk ({staging_hub_id; results_dir; _}) () =
     `String (Fmt.strf "mkdir -p results-%s" tag);
     `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' results-%s" tag tag);
     `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 results-%s" tag tag);
+    `String (Fmt.strf "echo %s > results-%s/arch" (OV.string_of_arch arch) tag);
+    `String (Fmt.strf "echo %s > results-%s/ov" (OV.to_string ov) tag);
+    `String (Fmt.strf "echo %s > results-%s/distro" (D.tag_of_distro distro) tag);
+    `String (Fmt.strf "echo %s > results-%s/rev" opam_repo_rev tag);
     `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
   ] in
   let gather = [ `O (["command", gather_cmds; "label", `String "Gather Results"]) ] in
@@ -372,6 +376,17 @@ let setup_logs = C.setup_logs ()
 
 let fpath = Arg.conv ~docv:"PATH" (Fpath.of_string, Fpath.pp)
 
+let arch =
+  let doc = "CPU architecture to perform build on" in
+  let term = Arg.enum [("x86_64", `X86_64); ("aarch64", `Aarch64)] in
+  Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
+
+let opam_repo_rev =
+  let doc = "opam repo git rev" in
+  let open Arg in
+  required & opt (some string) None
+  & info ["opam-repo-rev"] ~docv:"OPAM_REPO_REV" ~doc
+
 let copts_t =
   let docs = Manpage.s_common_options in
   let staging_hub_id =
@@ -404,7 +419,7 @@ let bulk_build =
     [ `S Manpage.s_description
     ; `P "Perform a bulk build of the opam packages" ]
   in
-  ( Term.(term_result (const bulk $ copts_t $ setup_logs))
+  ( Term.(term_result (const bulk $ copts_t $ opam_repo_rev $ setup_logs))
   , Term.info "bulk" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 

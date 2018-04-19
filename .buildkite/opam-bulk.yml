@@ -9,7 +9,8 @@ steps:
       - 'opam pin add -n --dev yaml'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
-      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk -vv'
+      - 'git clone --depth=1 git://github.com/ocaml/opam-repository /home/opam/opam-repo && git -C /home/opam/opam-repo rev-parse HEAD > /home/opam/latest-opam-repo-rev'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --opam-repo-rev=`cat /home/opam/latest-opam-repo-rev` -vv'
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "bulk-*/*"'
       - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
     concurrency: 1
