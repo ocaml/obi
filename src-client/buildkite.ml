@@ -168,10 +168,11 @@ let concurrency num group =
   "concurrency_group", `String group ]
 
 let docker_agents arch =
-   "agents", `O [ "arch", `String "amd64";
+  "agents", `O [ "arch", `String arch;
                   "docker", `String "true";
                   "pusher", `String "true";
-                  "os", `String "linux" ]
+                  "os", `String "linux";
+                  "retry", `O [ "automatic", `Bool true ] ]
 
 let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
@@ -198,7 +199,7 @@ let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact upload %s/results/__PKG__.txt" tag)
     ] in
     let label = `String "__PKG__" in
-    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents arch ] ] ] in
+    `O [ "steps", `A [ `O [ "commands", cmds; "label", label; docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
   let cmds =
     `A [
@@ -212,7 +213,7 @@ let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml" tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
     ] in
-  let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents arch; docker_login ]) in
+  let p1_builds = `O ([ "command", cmds; "label", `String label; docker_agents (OV.string_of_arch arch); docker_login ]) in
   let gather_cmds = `A [
     `String (Fmt.strf "mkdir -p results-%s" tag);
     `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' results-%s" tag tag);
