@@ -26,14 +26,13 @@ steps:
           - OPAMJOBS=12
   - wait
   - command:
-    - 'rm -rf containers/'
-    - 'git clone git@github.com:ocaml/containers'
-    - 'buildkite-agent artifact download "README.md" containers/'
-    - 'find .'
+    - 'rm -rf infrastructure.wiki/'
+    - 'git clone git@github.com:ocaml/infrastructure.wiki'
+    - 'buildkite-agent artifact download "README.md" .'
+    - 'mv README.md infrastructure.wiki/Containers.md'
     - 'git config --global user.email "bactrian@ocaml.org"'
     - 'git config --global user.name "Bactrian the Build Bot"'
-    - 'cd containers && git commit -m rebuild -a'
-    - 'git push'
+    - '(cd infrastructure.wiki && git commit -m rebuild -a && git push) || true'
     label: ':rocket: README'
     concurrency: 1
     concurrency_group: "opam/push"
