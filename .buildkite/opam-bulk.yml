@@ -1,6 +1,7 @@
 steps:
   - label: 'Opam Repo Rev'
     command:
+      - 'opam switch 4.06'
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'cd /home/opam/src/scripts && buildkite-agent artifact upload opam-ci-install'
       - 'sudo apt update && sudo apt install -y m4 pkg-config'
@@ -23,5 +24,7 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=12
+          - DISTRO=${DISTRO:-debian-9}
+          - OCAML_VERSION=${OCAML_VERSION:-4.06}
       docker-login#v1.0.0:
         username: avsm
