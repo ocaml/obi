@@ -176,12 +176,9 @@ let docker_agents arch =
 let retry () =
   "retry", `O [ "automatic", `Bool true ]
 
-let bulk ({staging_hub_id; results_dir; _}) opam_repo_rev () =
+let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
-  let distro = D.resolve_alias (`Debian `Stable) in
-  let variant = None in
-  let arch = `X86_64 in
-  let ov = OV.(with_patch Releases.latest None |> fun ov -> with_variant ov variant) in
+  let ov = OV.(with_patch ov None) in
   let dfiles = 
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
@@ -442,6 +439,36 @@ let copts_t =
   let open Term in
   const copts $ staging_hub_id $ prod_hub_id $ results_dir
 
+let arch =
+   let doc = "CPU architecture to perform build on" in
+   let term = Arg.enum [("x86_64", `X86_64); ("aarch64", `Aarch64)] in
+   Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
+
+let buildv ov distro =
+  Ocaml_version.of_string_exn ov
+  |> fun ov ->
+  let distro =
+    match D.distro_of_tag distro with
+    | None -> failwith "unknown distro"
+    | Some distro -> distro
+  in
+  {ov; distro}
+
+let build_t =
+  let ocaml_version =
+    let doc = "ocaml version to build" in
+    let env = Arg.env_var "OCAML_VERSION" ~doc in
+    let open Arg in
+    value & opt string "4.06.1"
+    & info ["ocaml-version"] ~docv:"OCAML_VERSION" ~env ~doc
+  in
+  let distro =
+    let doc = "distro to build" in
+    Arg.(value & opt string "debian-9" & info ["distro"] ~docv:"DISTRO" ~doc)
+  in
+  Term.(const buildv $ ocaml_version $ distro)
+
+
 let bulk_build =
   let doc = "perform a bulk build of the opam repository" in
   let exits = Term.default_exits in
@@ -449,7 +476,7 @@ let bulk_build =
     [ `S Manpage.s_description
     ; `P "Perform a bulk build of the opam packages" ]
   in
-  ( Term.(term_result (const bulk $ copts_t $ opam_repo_rev $ setup_logs))
+  ( Term.(term_result (const bulk $ copts_t $ arch $ build_t $ opam_repo_rev $ setup_logs))
   , Term.info "bulk" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 
