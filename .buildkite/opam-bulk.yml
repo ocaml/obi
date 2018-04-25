@@ -24,7 +24,7 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=12
-          - DISTRO="${DISTRO}"
-          - OCAML_VERSION="${OCAML_VERSION}"
+          - DISTRO=${DISTRO}
+          - OCAML_VERSION=${OCAML_VERSION}
       docker-login#v1.0.0:
         username: avsm
