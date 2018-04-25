@@ -3,6 +3,7 @@ steps:
     agents:
       arch: amd64
     command:
+      - 'opam switch 4.06'
       - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
       - 'sudo apt update && sudo apt install -y m4 pkg-config'
       - 'opam pin add -n --dev dockerfile-opam'
