@@ -32,7 +32,7 @@ steps:
     - 'mv README.md infrastructure.wiki/Containers.md'
     - 'git config --global user.email "bactrian@ocaml.org"'
     - 'git config --global user.name "Bactrian the Build Bot"'
-    - '(cd infrastructure.wiki && git commit -m rebuild -a && git push) || true'
+    - '(cd infrastructure.wiki && git add . && git commit -m containers -a && git push) || true'
     label: ':rocket: README'
     concurrency: 1
     concurrency_group: "opam/push"
