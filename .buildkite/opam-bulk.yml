@@ -10,12 +10,9 @@ steps:
       - 'opam pin add -n --dev yaml'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
-      - 'git clone --depth=1 git://github.com/ocaml/opam-repository /home/opam/opam-repo && git -C /home/opam/opam-repo rev-parse HEAD > /home/opam/latest-opam-repo-rev'
-      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --opam-repo-rev=`cat /home/opam/latest-opam-repo-rev` -vv'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --opam-repo-rev=$OPAM_REPO_REV -vv'
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "bulk-*/*"'
       - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
-    concurrency: 1
-    concurrency_group: "opam/bulk"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
@@ -24,7 +21,9 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=12
-          - DISTRO=${DISTRO}
-          - OCAML_VERSION=${OCAML_VERSION}
+          - OPAMVERBOSE=0
+          - DISTRO=${DISTRO?}
+          - OCAML_VERSION=${OCAML_VERSION?}
+          - OPAM_REPO_REV=${OPAM_REPO_REV?}
       docker-login#v1.0.0:
         username: avsm
