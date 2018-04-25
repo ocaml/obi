@@ -379,13 +379,19 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
     let distro = D.resolve_alias (`Debian `Stable) in
     let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
     let arches = Hashtbl.find p4 f in
-    let l = String.concat " " (List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches) in
-    let label = Fmt.strf ":docker: latest" in
+    let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
+    let l = String.concat " " tags in
+    let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
     let tag = "latest" in
-    let cmds = `A [
-        `String (Fmt.strf "docker manifest create -a %s:%s %s" staging_hub_id tag l);
-        `String (Fmt.strf "docker manifest push %s:%s" staging_hub_id tag)
-    ] in
+    let label = Fmt.strf ":docker: latest" in
+    let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
+    let cmds = `A (pulls @ [
+        `String (Fmt.strf "docker manifest push -p %s:%s || true" staging_hub_id tag);
+        `String (Fmt.strf "docker manifest create %s:%s %s" staging_hub_id tag l);
+      ] @ annotates @ [
+        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
+        `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
+      ]) in
     [`O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
            docker_login] @ (concurrency 5 "containers/ocaml")) ] in
  
