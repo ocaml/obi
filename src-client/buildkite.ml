@@ -278,7 +278,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       `O ([ "command", cmds;
            "label", `String label; retry ();
            docker_agents "amd64";
-           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p2 [] in
+           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc) p2 [] in
   let p3 =
     List.map (fun arch ->
       let arch_s = OV.string_of_arch arch in
@@ -328,7 +328,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id f)
       ]) in
       `O ([ "command", cmds; "label", `String label; retry (); docker_agents "amd64";
-           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc) p4 [] in
+           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc) p4 [] in
   let p4_march =
     List.fold_left (fun acc ldistro ->
       let distro = D.resolve_alias ldistro in
@@ -348,7 +348,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
       ]) in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
-           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
+           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc)
     [] D.latest_distros in
   let p5_march =
     List.fold_left (fun acc ov ->
@@ -370,7 +370,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
         `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
       ]) in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
-           docker_login] @ (concurrency 5 "containers/ocaml")) :: acc)
+           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc)
      [] OV.Releases.recent in
   let p6_march =
     let distro = D.resolve_alias (`Debian `Stable) in
@@ -464,7 +464,8 @@ let build_t =
   in
   let distro =
     let doc = "distro to build" in
-    Arg.(value & opt string "debian-9" & info ["distro"] ~docv:"DISTRO" ~doc)
+    let env = Arg.env_var "DISTRO" ~doc in
+    Arg.(value & opt string "debian-9" & info ["distro"] ~env ~docv:"DISTRO" ~doc)
   in
   Term.(const buildv $ ocaml_version $ distro)
 
