@@ -12,7 +12,6 @@ if [ $version -eq 1 ]; then
     exit 1
 elif [ $version -eq 2 ]; then
     export OPAMERRLOGLEN=0
-    export OPAMVERBOSE=0
     export OPAMYES=1
     cmd opam depext -iyj 2 $1 > $1.txt 2>&1
     exitcode=$?
