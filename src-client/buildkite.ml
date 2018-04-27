@@ -332,7 +332,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
   let p4_march =
     List.fold_left (fun acc ldistro ->
       let distro = D.resolve_alias ldistro in
-      let f = Fmt.strf "%s" (D.tag_of_distro distro) in
+      let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
       let arches = Hashtbl.find p4 f in
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
@@ -374,7 +374,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
      [] OV.Releases.recent in
   let p6_march =
     let distro = D.resolve_alias (`Debian `Stable) in
-    let f = Fmt.strf "%s" (D.tag_of_distro distro) in
+    let f = Fmt.strf "%s-ocaml" (D.tag_of_distro distro) in
     let arches = Hashtbl.find p4 f in
     let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
     let l = String.concat " " tags in
