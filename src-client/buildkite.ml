@@ -214,13 +214,12 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
   let gather_cmds = `A [
-    `String (Fmt.strf "mkdir -p results-%s" tag);
-    `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' results-%s" tag tag);
-    `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 results-%s" tag tag);
-    `String (Fmt.strf "echo %s > results-%s/arch" (OV.string_of_arch arch) tag);
-    `String (Fmt.strf "echo %s > results-%s/ov" (OV.to_string ov) tag);
-    `String (Fmt.strf "echo %s > results-%s/distro" (D.tag_of_distro distro) tag);
-    `String (Fmt.strf "echo %s > results-%s/rev" opam_repo_rev tag);
+    `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' ." tag);
+    `String (Fmt.strf "echo %s > %s/arch" (OV.string_of_arch arch) tag);
+    `String (Fmt.strf "echo %s > %s/ov" (OV.to_string ov) tag);
+    `String (Fmt.strf "echo %s > %s/distro" (D.tag_of_distro distro) tag);
+    `String (Fmt.strf "echo %s > %s/rev" opam_repo_rev tag);
+    `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 %s" tag tag);
     `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
   ] in
   let gather = [ `O (["command", gather_cmds; "label", `String "Gather Results"]) ] in
