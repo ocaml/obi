@@ -19,7 +19,7 @@ build() {
 EOL
 }
 
-build "alpine-3.7" "4.06"
-build "alpine-3.7" "4.07"
+build "debian-9" "4.07"
 build "debian-9" "4.06"
 build "debian-9" "4.06+default-unsafe-string"
+build "debian-9" "4.06+flambda"
