@@ -396,8 +396,54 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
   Bos.OS.File.write Fpath.(results_dir / "phase1.yml") (Yaml.to_string_exn ~len:256000 yml) >>= fun () ->
   Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
-open Cmdliner
+let pkg_version pkg =
+  let open Astring in
+  match String.cut ~sep:"." pkg with
+  | None -> Error (`Msg "invalid pkg")
+  | Some (pkg,ver) -> Ok (pkg,ver)
 
+let process input_dir output_dir () =
+  let open Bos in
+  OS.File.read Fpath.(input_dir / "rev") >>= fun rev ->
+  OS.File.read Fpath.(input_dir / "arch") >>= fun arch ->
+  OS.File.read Fpath.(input_dir / "distro") >>= fun distro ->
+  OS.File.read Fpath.(input_dir / "ov") >>= fun ov ->
+  let open Obi in
+  let rev = String.trim rev in
+  let arch = String.trim arch |> OV.arch_of_string_exn in
+  let distro = String.trim distro |> D.distro_of_tag |> function Some x -> x | None -> failwith "invalid distro" in
+  let ov = String.trim ov |> OV.of_string_exn in
+  let logs = Fpath.(input_dir / "results") in
+  OS.Dir.contents ~rel:true logs >>= fun pkgs ->
+  let h = Hashtbl.create 1000 in
+  C.iter (fun pkg ->
+    Logs.info (fun l -> l "Reading %a" Fpath.pp pkg);
+    OS.File.read_lines Fpath.(logs // pkg) >>= fun lines ->
+    let status = `Exited (List.rev lines |> List.hd |> int_of_string) in
+    let log_hash = "" in
+    let res = { Obi.status; log_hash } in
+    pkg_version (Fpath.to_string pkg) >>= fun (name, version) ->
+    let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
+    let results_for_ver = try List.assoc version versions with Not_found -> [] in
+    let results_for_ver = (ov,res) :: results_for_ver in
+    let versions = (version, results_for_ver) :: (List.remove_assoc version versions) in
+    Hashtbl.replace h name versions;
+    Ok ()
+  ) pkgs >>= fun () ->
+  let versions = Hashtbl.fold (fun name versions acc ->
+    let versions = List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) versions in
+    {Obi.name;versions}::acc
+  ) h [] in
+  let ofile = Fpath.(output_dir / "batch" / (rev ^ ".sxp")) in
+  let batch =
+    match OS.File.read ofile with
+    | Ok f -> Obi.batch_of_sexp (Sexplib.Sexp.of_string f)
+    | Error _ -> { rev; res=[] } in
+  let res = (arch,distro,versions) :: (List.filter (fun (a,d,_) -> not (a = arch && d = distro)) batch.res) in
+  let batch = { batch with res=res } in
+  OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
+
+open Cmdliner
 let setup_logs = C.setup_logs ()
 
 let fpath = Arg.conv ~docv:"PATH" (Fpath.of_string, Fpath.pp)
@@ -480,6 +526,27 @@ let bulk_build =
   , Term.info "bulk" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 
+let process_cmd =
+  let odir =
+    let doc = "Directory in which to store bulk build results" in
+    let open Arg in
+    value & opt fpath (Fpath.v "_results")
+    & info ["o"; "results-dir"] ~docv:"RESULTS_DIR" ~doc
+  in
+  let dir =
+    let doc = "Directory from which to store import build results" in
+    let open Arg in
+    value & opt fpath (Fpath.v "results")
+    & info ["i"; "input-dir"] ~docv:"INPUT_DIR" ~doc
+  in
+  let doc = "process a results archive and add to metadata" in
+  let exits = Term.default_exits in
+  let man =
+    [ `S Manpage.s_description
+    ; `P "process a results archive and add to metadata." ]
+  in
+  ( Term.(term_result (const process $ dir $ odir $ setup_logs))
+  , Term.info "process" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 let gen_cmd =
   let doc = "generate, build and push base opam container images" in
@@ -498,6 +565,6 @@ let default_cmd =
   , Term.info "obi-buildkite" ~version:"v1.0.0" ~doc ~sdocs )
 
 
-let cmds = [ gen_cmd; bulk_build ]
+let cmds = [ gen_cmd; bulk_build; process_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
