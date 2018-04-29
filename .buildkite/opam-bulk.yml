@@ -10,6 +10,7 @@ steps:
       - 'opam pin add -n --dev yaml'
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
+      - 'cd /home/opam/src/_build/install/default/bin && buildkite-agent artifact upload obi-buildkite'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --opam-repo-rev=$OPAM_REPO_REV -vv'
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "bulk-*/*"'
       - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
