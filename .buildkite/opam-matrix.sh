@@ -33,5 +33,5 @@ cat <<EOL
   agents:
     arch: "amd64"
     docker: "true"
-    linux: "true"
+    os: "linux"
 EOL
