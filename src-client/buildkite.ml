@@ -446,6 +446,7 @@ let process input_dir output_dir () =
     match OS.File.read ofile with
     | Ok f -> Logs.info (fun l -> l "Found existing batch"); Obi.batch_of_sexp (Sexplib.Sexp.of_string f)
     | Error _ -> Logs.info (fun l -> l "Starting new batch"); { rev; res=[] } in
+  Logs.info (fun l -> l "Existing: %s" (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch)));
   let res = (arch,distro,versions) :: (List.filter (fun (a,d,_) -> not (a = arch && d = distro)) batch.res) in
   Logs.info (fun l -> l "Writing %d batches for this rev" (List.length res));
   let batch = { batch with res=res } in
