@@ -206,7 +206,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact download 'opam-ci-install' .");
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s:%s opam list --all-versions --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "docker run %s:%s opam list --all-versions --installable -s | tail -2 > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml" tag);
