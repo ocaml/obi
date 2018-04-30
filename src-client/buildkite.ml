@@ -225,7 +225,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     `String (Fmt.strf "buildkite-agent artifact download 'obi-buildkite' . && chmod a+x obi-buildkite");
     `String (Fmt.strf "rm -rf obi-logs && git clone --depth=1 git@github.com:avsm/obi-logs && mkdir -p obi-logs/batch");
     `String (Fmt.strf "./obi-buildkite process -vv -i %s -o obi-logs" tag);
-    `String (Fmt.strf "git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'");
+    `String (Fmt.strf "git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot' && env");
     `String (Fmt.strf "cd obi-logs && find . -type f && git add . && git commit -m 'update %s' && git push" tag);
   ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
