@@ -220,11 +220,12 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     `String (Fmt.strf "echo %s > %s/distro" (D.tag_of_distro distro) tag);
     `String (Fmt.strf "echo %s > %s/rev" opam_repo_rev tag);
     `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 %s" tag tag);
+    `String (Fmt.strf "find .");
     `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
     `String (Fmt.strf "buildkite-agent artifact download 'obi-buildkite' .");
-    `String (Fmt.strf "git clone git@github.com:avsm/obi-logs");
-    `String (Fmt.strf "./obi-buildkite process -vv -i %s -o obi-logs" tag);
-    `String (Fmt.strf "git -C obi-logs add . && git commit -m 'update %s' && git push" tag);
+    `String (Fmt.strf "git clone git@github.com:avsm/obi-logs out");
+    `String (Fmt.strf "./obi-buildkite process -vv -i %s -o out" tag);
+    `String (Fmt.strf "git -C out add . && git commit -m 'update %s' && git push" tag);
   ] in
   let gather = [ `O (["command", gather_cmds; "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
