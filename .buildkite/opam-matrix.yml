@@ -3,5 +3,6 @@ steps:
     concurrency: 1
     concurrency_group: "opam/matrix"
     command:
+      - 'rm -rf opam-repository'
       - 'git clone --depth=1 git://github.com/ocaml/opam-repository && git -C opam-repository rev-parse HEAD > rev'
       - '.buildkite/opam-matrix.sh `cat rev` | buildkite-agent pipeline upload'
