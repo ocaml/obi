@@ -444,9 +444,10 @@ let process input_dir output_dir () =
   let ofile = Fpath.(output_dir / "batch" / (rev ^ ".sxp")) in
   let batch =
     match OS.File.read ofile with
-    | Ok f -> Obi.batch_of_sexp (Sexplib.Sexp.of_string f)
-    | Error _ -> { rev; res=[] } in
+    | Ok f -> Logs.info (fun l -> l "Found existing batch"); Obi.batch_of_sexp (Sexplib.Sexp.of_string f)
+    | Error _ -> Logs.info (fun l -> l "Starting new batch"); { rev; res=[] } in
   let res = (arch,distro,versions) :: (List.filter (fun (a,d,_) -> not (a = arch && d = distro)) batch.res) in
+  Logs.info (fun l -> l "Writing %d batches for this rev" (List.length res));
   let batch = { batch with res=res } in
   Logs.info (fun l -> l "Writing %a" Fpath.pp ofile);
   OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
