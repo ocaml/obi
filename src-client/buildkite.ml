@@ -446,6 +446,7 @@ let process input_dir output_dir () =
     | Error _ -> { rev; res=[] } in
   let res = (arch,distro,versions) :: (List.filter (fun (a,d,_) -> not (a = arch && d = distro)) batch.res) in
   let batch = { batch with res=res } in
+  Logs.info (fun l -> l "Writing %a" Fpath.pp ofile);
   OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
 
 open Cmdliner
