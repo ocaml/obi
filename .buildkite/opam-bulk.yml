@@ -14,6 +14,10 @@ steps:
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --opam-repo-rev=$OPAM_REPO_REV -vv'
       - 'cd /home/opam/src/_results && buildkite-agent artifact upload "bulk-*/*"'
       - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
+    agents:
+      - docker: "true"
+      - pusher: "true"
+      - arch: "amd64"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
