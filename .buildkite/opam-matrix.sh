@@ -28,8 +28,8 @@ cat <<EOL
 - label: "Rebuild index"
   command:
     - rm -rf obi-logs
-    - git clone --depth=1 git://github.com/avsm/obi-logs
-    - find obi-logs/batch -type f
+    - git clone -b builds --depth=1 git://github.com/avsm/obi-logs
+    - find obi-logs/ -type f
   agents:
     arch: "amd64"
     docker: "true"
