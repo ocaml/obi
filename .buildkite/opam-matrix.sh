@@ -23,6 +23,8 @@ build "debian-9" "4.06"
 build "debian-9" "4.06+default-unsafe-string"
 build "debian-9" "4.06+flambda"
 build "alpine-3.7" "4.06"
+build "ubuntu-18.04" "4.06"
+build "fedora-27" "4.06"
 
 cat <<EOL
 - wait
