@@ -25,6 +25,7 @@ build "debian-9" "4.06+flambda"
 build "alpine-3.7" "4.06"
 
 cat <<EOL
+- wait
 - label: "Rebuild index"
   command:
     - rm -rf obi-logs
