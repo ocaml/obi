@@ -223,7 +223,8 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 %s" tag tag);
     `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
     `String (Fmt.strf "buildkite-agent artifact download 'obi-buildkite' . && chmod a+x obi-buildkite");
-    `String (Fmt.strf "rm -rf obi-logs && git clone --depth=1 git@github.com:avsm/obi-logs && mkdir -p obi-logs/batch");
+    `String (Fmt.strf "rm -rf obi-logs && git clone --depth=1 git@github.com:avsm/obi-logs");
+    `String (Fmt.strf "git -C obi-logs checkout -B builds");
     `String (Fmt.strf "./obi-buildkite process -vv -i %s -o obi-logs" tag);
     `String (Fmt.strf "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l");
     `String (Fmt.strf "git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'");
@@ -422,11 +423,19 @@ let process input_dir output_dir () =
   let ov = String.trim ov |> OV.of_string_exn in
   let logs = Fpath.(input_dir / "results") in
   OS.Dir.contents ~rel:true logs >>= fun pkgs ->
+  let odir = Fmt.strf "%a/metadata/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
+  OS.Dir.create ~path:true odir >>= fun _ -> 
+  let ldir = Fmt.strf "%a/logs/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
+  OS.Dir.create ~path:true ldir >>= fun _ -> 
   let h = Hashtbl.create 1000 in
   C.iter (fun pkg ->
     Logs.info (fun l -> l "Reading %a" Fpath.pp pkg);
     OS.File.read_lines Fpath.(logs // pkg) >>= fun lines ->
-    let status = `Exited (List.rev lines |> List.hd |> int_of_string) in
+    let exit_code = List.rev lines |> List.hd |> int_of_string in
+    begin match exit_code with
+    | 0 -> ()
+    | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
+    let status = `Exited exit_code in
     let log_hash = "" in
     let res = { Obi.status; log_hash } in
     pkg_version (Fpath.to_string pkg) >>= fun (name, version) ->
@@ -441,8 +450,6 @@ let process input_dir output_dir () =
     let versions = List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) versions in
     {Obi.name;versions}::acc
   ) h [] in
-  let odir = Fmt.strf "%a/batch/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
-  OS.Dir.create ~path:true odir >>= fun _ -> 
   let ofile = Fpath.(odir / (rev ^ ".sxp")) in
   Logs.info (fun l -> l "arch %s distro %s" (OV.string_of_arch arch) (D.tag_of_distro distro));
   let batch = { rev; res=[arch,distro,versions] } in
