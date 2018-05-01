@@ -206,7 +206,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact download 'opam-ci-install' .");
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s:%s opam list --all-versions --installable -s | tail -50 > %s/pkgs.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "docker run %s:%s opam list --all-versions --installable -s | tail -10 > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml" tag);
@@ -223,12 +223,11 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 %s" tag tag);
     `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
     `String (Fmt.strf "buildkite-agent artifact download 'obi-buildkite' . && chmod a+x obi-buildkite");
-    `String (Fmt.strf "rm -rf obi-logs && git clone --depth=1 git@github.com:avsm/obi-logs");
-    `String (Fmt.strf "git -C obi-logs checkout -B builds");
+    `String (Fmt.strf "rm -rf obi-logs && git clone -b builds --depth=1 git@github.com:avsm/obi-logs");
     `String (Fmt.strf "./obi-buildkite process -vv -i %s -o obi-logs" tag);
     `String (Fmt.strf "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l");
     `String (Fmt.strf "git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'");
-    `String (Fmt.strf "cd obi-logs && find . -type f && git add . && git commit -m 'update %s' && git push -u origin builds" tag);
+    `String (Fmt.strf "cd obi-logs && find . -type f && git add . && git pull --commit && git commit -m 'update %s' && git push -u origin builds" tag);
   ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
