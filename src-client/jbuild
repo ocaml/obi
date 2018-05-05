@@ -1,8 +1,8 @@
 (jbuild_version 1)
 
 (executables
- ((names (main docker buildkite))
-  (public_names (obi-logs obi-docker obi-buildkite))
+ ((names (buildkite))
+  (public_names (obi-buildkite))
   (libraries (obi dockerfile-opam dockerfile-cmd lambdasoup uri ptime yaml))
   (package obi)
 ))

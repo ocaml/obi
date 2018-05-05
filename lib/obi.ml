@@ -24,17 +24,22 @@ module Ocaml_version = struct
 
 end
 
-type build_result =
-  {status: [`Signaled of int | `Exited of int]; log_hash: string}
+type build_result = [`Signaled of int | `Exited of int]
   [@@deriving sexp]
 
 type pkg =
   { name: string
-  ; versions: (string * (Ocaml_version.t * build_result) list) list }
+  ; versions: (string * build_result list) list }
   [@@deriving sexp]
 
+type params = {
+  arch: [ `X86_64 | `Aarch64 ];
+  distro : Dockerfile_distro.t;
+  ov: Ocaml_version.t;
+} [@@deriving sexp]
+
 type batch =
-  {rev: string; res: (Ocaml_version.arch * Dockerfile_distro.t * pkg list) list}
+  {rev: string; params: params; pkgs: pkg list}
   [@@deriving sexp]
 
 type index =
@@ -45,6 +50,7 @@ type index =
 
 module VersionCompare = VersionCompare
 
+(*
 module Analysis = struct
   module OV = Ocaml_version
 
@@ -88,7 +94,7 @@ module Analysis = struct
   let partition_two_ocaml_versions pkgs ov1 ov2 =
     let classify_one ov res =
       match List.assoc ov res with
-      | {status= `Exited 0; log_hash} -> `Ok
+      | {status= `Exited 0 } -> `Ok
       | {status=_;log_hash} -> `Fail log_hash
       | exception Not_found -> `Missing
     in
@@ -141,3 +147,4 @@ module Analysis = struct
 end
 
 type analysis = {safe_string_errors: unit (* TODO *)} [@@deriving sexp]
+*)

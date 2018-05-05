@@ -434,26 +434,28 @@ let process input_dir output_dir () =
     begin match exit_code with
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
-    let status = `Exited exit_code in
-    let log_hash = "" in
-    let res = { Obi.status; log_hash } in
+    let res = `Exited exit_code in
     pkg_version (Fpath.to_string pkg) >>= fun (name, version) ->
     let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
     let results_for_ver = try List.assoc version versions with Not_found -> [] in
-    let results_for_ver = (ov,res) :: results_for_ver in
+    let results_for_ver = res :: results_for_ver in
     let versions = (version, results_for_ver) :: (List.remove_assoc version versions) in
     Hashtbl.replace h name versions;
     Ok ()
   ) pkgs >>= fun () ->
-  let versions = Hashtbl.fold (fun name versions acc ->
+  let pkgs = Hashtbl.fold (fun name versions acc ->
     let versions = List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) versions in
     {Obi.name;versions}::acc
   ) h [] in
   let ofile = Fpath.(odir / (rev ^ ".sxp")) in
   Logs.info (fun l -> l "arch %s distro %s" (OV.string_of_arch arch) (D.tag_of_distro distro));
-  let batch = { rev; res=[arch,distro,versions] } in
+  let params = {Obi.arch;distro;ov} in
+  let batch = { rev; params; pkgs} in
   Logs.info (fun l -> l "Writing %a" Fpath.pp ofile);
   OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
+
+let gen_index (input_dir:Fpath.t) () =
+  Import2.gather_logs input_dir
 
 open Cmdliner
 let setup_logs = C.setup_logs ()
@@ -570,6 +572,23 @@ let gen_cmd =
   ( Term.(term_result (const gen $ copts_t $ setup_logs))
   , Term.info "gen" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
+let index_cmd =
+  let doc = "generate a index from build metadata logs" in
+  let exits = Term.default_exits in
+  let dir =
+    let doc = "Directory from which to store import build results" in
+    let open Arg in
+    value & opt fpath (Fpath.v "results")
+    & info ["i"; "input-dir"] ~docv:"INPUT_DIR" ~doc
+  in
+  let man =
+    [ `S Manpage.s_description
+    ; `P "generate an index from build metadata logs." ]
+  in
+  ( Term.(term_result (const gen_index $ dir $ setup_logs))
+  , Term.info "index" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+
+
 let default_cmd =
   let doc = "build and push opam and OCaml multiarch container images" in
   let sdocs = Manpage.s_common_options in
@@ -577,6 +596,6 @@ let default_cmd =
   , Term.info "obi-buildkite" ~version:"v1.0.0" ~doc ~sdocs )
 
 
-let cmds = [ gen_cmd; bulk_build; process_cmd ]
+let cmds = [ gen_cmd; bulk_build; process_cmd; index_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
