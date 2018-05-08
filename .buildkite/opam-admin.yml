@@ -1,0 +1,6 @@
+steps:
+  - label: 'Opam Repo Rev'
+    command:
+      - 'rm -rf opam-repository'
+      - 'git clone --depth=1 git://github.com/ocaml/opam-repository && git -C opam-repository rev-parse HEAD > rev'
+      - '.buildkite/opam-admin.sh `cat rev` | buildkite-agent pipeline upload'
