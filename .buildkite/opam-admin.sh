@@ -16,8 +16,8 @@ cmd() {
     - id
     - git pull origin master
     - opam update
-    - opam admin $cmd > $cmd.txt
-    - buildkite artifact upload $cmd.txt
+    - opam admin $cmd 2>&1 | tee $cmd.txt
+    - buildkite-agent artifact upload $cmd.txt
   plugins:
     docker#v1.1.1:
       image: "ocaml/opam2-staging"
