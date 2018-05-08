@@ -16,6 +16,7 @@ cmd() {
     - id
     - git pull origin master
     - opam update
+    - opam admin upgrade
     - opam admin $cmd 2>&1 | tee $cmd.txt
     - buildkite-agent artifact upload $cmd.txt
   plugins:
