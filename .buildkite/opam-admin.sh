@@ -12,6 +12,8 @@ cmd() {
     os: "linux"
   label: ":camel: opam admin $cmd"
   command:
+    - cd /home/opam/opam-repository
+    - id
     - git pull origin master
     - opam update
     - opam admin $cmd > $cmd.txt
@@ -19,7 +21,6 @@ cmd() {
   plugins:
     docker#v1.1.1:
       image: "ocaml/opam2-staging"
-      workdir: /home/opam/opam-repository
       always_pull: true
 EOL
 }
