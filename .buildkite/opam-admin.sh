@@ -22,6 +22,8 @@ cmd() {
     docker#v1.1.1:
       image: "ocaml/opam2-staging"
       always_pull: true
+      env:
+        OPAMCOLOR: "never"
 EOL
 }
 
@@ -32,9 +34,18 @@ cat <<EOL
 - wait
 - label: "Push Results"
   command:
-    - rm -rf obi-logs
-    - git clone -b lints --depth=1 git://github.com/avsm/obi-logs
-    - find obi-logs/ -type f
+  - "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk"
+  - "buildkite-agent artifact download lint.txt cache.txt"
+  - "rm -rf lints"
+  - "git clone git@github.com:avsm/obi-logs lints --reference ."
+  - "git -C lints checkout --orphan lints"
+  - "git -C lints reset"
+  - "git -C lints clean -dxf"
+  - "cp *.txt lints/"
+  - "git -C lints add ."
+  - "git -C lints commit -m 'BuildKite Update'"
+  - "git -C lints push origin lints -f"
+  - "rm -rf lints *.txt"
   agents:
     githubpusher: "true"
 EOL
