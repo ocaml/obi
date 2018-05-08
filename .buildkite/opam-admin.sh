@@ -28,14 +28,13 @@ EOL
 }
 
 cmd "lint"
-cmd "cache"
 
 cat <<EOL
 - wait
 - label: "Push Results"
   command:
   - "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk"
-  - "buildkite-agent artifact download lint.txt cache.txt"
+  - "buildkite-agent artifact download lint.txt"
   - "rm -rf lints"
   - "git clone git@github.com:avsm/obi-logs lints --reference ."
   - "git -C lints checkout --orphan lints"
