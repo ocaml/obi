@@ -28,6 +28,7 @@ EOL
 
 cmd "lint"
 cmd "cache"
+cmd "check"
 
 cat <<EOL
 - wait
