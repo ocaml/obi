@@ -2,26 +2,7 @@ open Sexplib.Conv
 
 module Ocaml_version = struct
   include Ocaml_version
-
-  let sexp_of_t t = Sexplib.Sexp.Atom (to_string t)
-
-  let t_of_sexp t =
-    match t with
-    | Sexplib.Sexp.Atom t -> of_string_exn t
-    | _ -> failwith "invalid input for Ocaml_version.t_of_sexp"
-
-
-  let sexp_of_arch t = Sexplib.Sexp.Atom (string_of_arch t)
-
-  let arch_of_sexp t =
-    match t with
-    | Sexplib.Sexp.Atom t -> (
-      match arch_of_string t with
-      | Ok a -> a
-      | Error `Msg m ->
-          failwith ("invalid input for Ocaml_version.arch_of_sexp: " ^ m) )
-    | _ -> failwith "invalid input for Ocaml_version.arch_of_sexp"
-
+  include Ocaml_version_sexp
 end
 
 type build_result = [`Signaled of int | `Exited of int]
@@ -42,13 +23,26 @@ type batch =
   {rev: string; params: params; pkgs: pkg list}
   [@@deriving sexp]
 
-type index =
-  { last_updated: float
-  ; most_recent_rev: string
-  ; revs: (string * float * string) list }
-  [@@deriving sexp]
+module Index = struct
+  type metadata =
+    { rev: string;
+      params: params;
+      build_result: [`Signaled of int | `Exited of int ];
+      maintainer: string;
+      log: string option;
+  } [@@deriving sexp]
+  type pkg =
+  { name: string;
+    mutable versions: (string * metadata list) list 
+  } [@@deriving sexp]
+  type pkgs = pkg list [@@deriving sexp]
+end
 
 module VersionCompare = VersionCompare
+
+module Latest = struct
+
+end
 
 (*
 module Analysis = struct

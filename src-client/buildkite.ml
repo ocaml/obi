@@ -424,7 +424,7 @@ let process input_dir output_dir () =
   OS.Dir.contents ~rel:true logs >>= fun pkgs ->
   let odir = Fmt.strf "%a/metadata/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
   OS.Dir.create ~path:true odir >>= fun _ -> 
-  let ldir = Fmt.strf "%a/logs/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
+  let ldir = Fmt.strf "%a/logs/linux/%s/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) rev |> Fpath.v in
   OS.Dir.create ~path:true ldir >>= fun _ -> 
   let h = Hashtbl.create 1000 in
   C.iter (fun pkg ->
@@ -435,7 +435,7 @@ let process input_dir output_dir () =
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
     let res = `Exited exit_code in
-    pkg_version (Fpath.to_string pkg) >>= fun (name, version) ->
+    pkg_version (Fpath.rem_ext pkg |> Fpath.to_string) >>= fun (name, version) ->
     let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
     let results_for_ver = try List.assoc version versions with Not_found -> [] in
     let results_for_ver = res :: results_for_ver in
@@ -454,8 +454,8 @@ let process input_dir output_dir () =
   Logs.info (fun l -> l "Writing %a" Fpath.pp ofile);
   OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
 
-let gen_index (input_dir:Fpath.t) () =
-  Import2.gather_logs input_dir
+let gen_summary input_dir opam_dir () =
+  Import2.summarise input_dir opam_dir
 
 open Cmdliner
 let setup_logs = C.setup_logs ()
@@ -572,22 +572,28 @@ let gen_cmd =
   ( Term.(term_result (const gen $ copts_t $ setup_logs))
   , Term.info "gen" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
-let index_cmd =
-  let doc = "generate a index from build metadata logs" in
+let summarise_cmd =
+  let doc = "summarise stats from set of indexes" in
   let exits = Term.default_exits in
   let dir =
-    let doc = "Directory from which to store import build results" in
+    let doc = "input directory of obi-logs" in
     let open Arg in
     value & opt fpath (Fpath.v "results")
     & info ["i"; "input-dir"] ~docv:"INPUT_DIR" ~doc
   in
+  let opam_dir =
+    let doc = "input directory of opam-repository" in
+    let open Arg in
+    value & opt fpath (Fpath.v "opam-repository")
+    & info ["r"; "opam-repo"] ~docv:"OPAM_REPO" ~doc
+  in
+ 
   let man =
     [ `S Manpage.s_description
-    ; `P "generate an index from build metadata logs." ]
+    ; `P "summarise stats from set of indexes." ]
   in
-  ( Term.(term_result (const gen_index $ dir $ setup_logs))
+  ( Term.(term_result (const gen_summary $ dir $ opam_dir $ setup_logs))
   , Term.info "index" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
-
 
 let default_cmd =
   let doc = "build and push opam and OCaml multiarch container images" in
@@ -596,6 +602,6 @@ let default_cmd =
   , Term.info "obi-buildkite" ~version:"v1.0.0" ~doc ~sdocs )
 
 
-let cmds = [ gen_cmd; bulk_build; process_cmd; index_cmd ]
+let cmds = [ gen_cmd; bulk_build; process_cmd; summarise_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
