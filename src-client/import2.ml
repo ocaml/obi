@@ -32,6 +32,17 @@ let by_param = Hashtbl.create 10
 let revs = Hashtbl.create 10
 let maintainers = Hashtbl.create 100
 
+let load_maintainers dir =
+  let m = try
+     Sexplib.Sexp.load_sexp_conv_exn Fpath.(dir / "maintainers.sxp" |> to_string) Obi.Index.maintainers_of_sexp
+    with _ -> [] in
+  List.iter (fun (k,v) -> Hashtbl.add maintainers k v) m
+
+let save_maintainers dir =
+  let f = Fpath.(dir / "maintainers.sxp" |> to_string) in
+  let m = Hashtbl.fold (fun k v a -> (k,v)::a) maintainers []  in
+  Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_maintainers m)
+
 let info_of_rev tdir rev =
    let run_git args = OS.Cmd.(run_out (Cmd.(v "git" % "-C" % p tdir %% args)) |> to_string) in
    run_git Cmd.(v "show" % "-s" % "--pretty=format:%ct" % rev) >>= fun date ->
@@ -44,10 +55,8 @@ let find_maintainer pkg =
   match Hashtbl.find_opt maintainers pkg with
   | Some m -> Ok m
   | None ->
-      (* TODO add quick switch for dev
     OS.Cmd.(run_out (Cmd.(v "opam" % "info" % "-f" % "maintainer:" % pkg)) |> to_string) >>= fun maintainer ->
     let m = String.trim maintainer in
-*) let m = "TODO" in
     Hashtbl.add maintainers pkg m;
     Ok m
 
@@ -135,6 +144,8 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
 let summarise input_dir (opam_dir:Fpath.t) =
   let meta_dir = Fpath.(input_dir / "metadata") in
   let logs_dir = Fpath.(input_dir / "logs") in
+  Logs.info (fun l -> l "Loading maintainer cache");
+  load_maintainers input_dir;
   OS.Dir.contents ~rel:true meta_dir >>=
   C.iter (fun os ->
     let dir = Fpath.(meta_dir // os) in
@@ -186,5 +197,7 @@ let summarise input_dir (opam_dir:Fpath.t) =
     ) all_params in
     C.map (pkg_metadata_of_batch logs_dir) latest >>= fun latest ->
     let pkgs = merge_pkgs latest in
+    save_maintainers input_dir;
     print_endline (ps Obi.Index.sexp_of_pkgs pkgs);
+
     Ok ()

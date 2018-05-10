@@ -24,6 +24,8 @@ type batch =
   [@@deriving sexp]
 
 module Index = struct
+  type maintainers = (string * string) list [@@deriving sexp]
+
   type metadata =
     { rev: string;
       params: params;
