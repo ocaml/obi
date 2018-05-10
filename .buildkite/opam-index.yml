@@ -10,7 +10,7 @@ steps:
       - 'opam install --deps-only /home/opam/src'
       - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'rm -rf opam-repository'
-      - 'git clone --depth=1 git://github.com/ocaml/opam-repository'
+      - 'git clone git://github.com/ocaml/opam-repository'
       - 'rm -rf obi-logs'
       - 'git clone -b builds --depth=1 git://github.com/avsm/obi-logs'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
