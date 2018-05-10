@@ -1,0 +1,30 @@
+steps:
+  - label: 'Obi Index'
+    command:
+      - 'opam switch 4.06'
+      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
+      - 'sudo apt update && sudo apt install -y m4 pkg-config'
+      - 'opam pin add -n --dev dockerfile-opam'
+      - 'opam pin add -n --dev ocaml-version'
+      - 'opam pin add -n --dev yaml'
+      - 'opam install --deps-only /home/opam/src'
+      - 'cd /home/opam/src && opam exec -- jbuilder build'
+      - 'rm -rf opam-repository'
+      - 'git clone --depth=1 git://github.com/ocaml/opam-repository'
+      - 'rm -rf obi-logs'
+      - 'git clone -b builds --depth=1 git://github.com/avsm/obi-logs'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
+      - 'buildkite-agent artifact upload index.sxp'
+      - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp'
+    agents:
+      docker: "true"
+      arch: "amd64"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging"
+        workdir: /src
+        always_pull: true
+        environment:
+          - OPAMYES=1
+          - OPAMJOBS=12
+          - OPAMVERBOSE=0
