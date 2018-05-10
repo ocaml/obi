@@ -30,7 +30,6 @@ let ps fn v = Sexplib.Sexp.to_string_hum (fn v)
 let h = Hashtbl.create 10
 let by_param = Hashtbl.create 10
 let revs = Hashtbl.create 10
-
 let maintainers = Hashtbl.create 100
 
 let info_of_rev tdir rev =
@@ -55,8 +54,20 @@ let find_maintainer pkg =
 let find_log logs_dir params rev pkg version =
   let open Obi in
   let log = Printf.sprintf "%s/linux/%s/%s/%s/%s.%s.txt" (Fpath.to_string logs_dir) (OV.string_of_arch params.arch) (D.tag_of_distro params.distro) (OV.to_string params.ov) pkg version in
-  Bos.OS.File.read (Fpath.v log) >>= fun log ->
-  Ok (Some log)
+  Bos.OS.File.read_lines (Fpath.v log) >>= fun lines ->
+  (* Grab last lines or error report *)
+  let rec chop_error_report = function
+    | [] -> []
+    | hd::tl when String.is_prefix ~affix:"<><> Error report" hd -> tl
+    | hd::tl when String.is_prefix ~affix:"-_-_ Error report" hd -> tl
+    | hd::tl  -> chop_error_report tl in
+  let rec tail n acc = function
+    | [] -> acc
+    | hd::tl when n = 0 -> hd::acc
+    | hd::tl -> tail (n-1) (hd::acc) tl
+  in
+  let log = List.rev lines |> chop_error_report |> tail 30 [] in
+  Ok log
 
 let find_latest_results srevs params =
   let r = ref None in
@@ -84,7 +95,7 @@ let pkg_metadata_of_batch logs_dir b =
       let version = Fpath.(v version |> rem_ext |> to_string) in
       find_maintainer name >>= fun maintainer ->
       (match build_result with
-       |`Exited 0 -> Ok None 
+       |`Exited 0 -> Ok []
        |_ -> find_log logs_dir params rev name version) >>= fun log ->
       let metadata = [ { Index.maintainer; params; rev; build_result; log } ] in
       Ok (version, metadata)
@@ -102,7 +113,6 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
       let p =
         match List.find_opt (fun p -> p.name = name) !r with
         | None ->
-           Logs.debug (fun l -> l "New package %s" name);
            let p = { name; versions=[] } in
            r := p :: !r;
            p
@@ -176,5 +186,5 @@ let summarise input_dir (opam_dir:Fpath.t) =
     ) all_params in
     C.map (pkg_metadata_of_batch logs_dir) latest >>= fun latest ->
     let pkgs = merge_pkgs latest in
-    prerr_endline (ps Obi.Index.sexp_of_pkgs pkgs);
+    print_endline (ps Obi.Index.sexp_of_pkgs pkgs);
     Ok ()

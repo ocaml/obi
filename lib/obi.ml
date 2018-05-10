@@ -29,7 +29,7 @@ module Index = struct
       params: params;
       build_result: [`Signaled of int | `Exited of int ];
       maintainer: string;
-      log: string option;
+      log: string list;
   } [@@deriving sexp]
   type pkg =
   { name: string;
