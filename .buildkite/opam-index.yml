@@ -26,6 +26,7 @@ steps:
         environment:
           - OPAMYES=1
           - OPAMJOBS=12
+  - wait
   - label: 'Push Index'
     command:
       - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
