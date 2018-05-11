@@ -55,7 +55,7 @@ steps:
       - buildkite-agent artifact download 'maintainers.sxp' obi-logs
       - git -C obi-logs add maintainers.sxp
       - git -C obi-logs commit -m 'BuildKite Maintainer Update'
-      - git -C obi-logs push origin obi-logs
+      - git -C obi-logs push origin builds
       - rm -rf obi-logs
     retry:
       automatic:
