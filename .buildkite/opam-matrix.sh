@@ -29,6 +29,6 @@ build "fedora-27" "4.06"
 
 cat <<EOL
 - wait
-- trigger: "opam-index"
+- trigger: "obi-index"
   label: "Update Obi Index"
 EOL
