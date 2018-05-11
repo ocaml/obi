@@ -62,7 +62,7 @@ let find_maintainer pkg =
 
 let find_log logs_dir params rev pkg version =
   let open Obi in
-  let log = Printf.sprintf "%s/linux/%s/%s/%s/%s.%s.txt" (Fpath.to_string logs_dir) (OV.string_of_arch params.arch) (D.tag_of_distro params.distro) (OV.to_string params.ov) pkg version in
+  let log = Printf.sprintf "%s/linux/%s/%s/%s/%s/%s.%s.txt" (Fpath.to_string logs_dir) (OV.string_of_arch params.arch) (D.tag_of_distro params.distro) (OV.to_string params.ov) rev pkg version in
   Bos.OS.File.read_lines (Fpath.v log) >>= fun lines ->
   (* Grab last lines or error report *)
   let rec chop_error_report = function
@@ -100,8 +100,6 @@ let pkg_metadata_of_batch logs_dir b =
     let name = pkg.name in
     C.map (fun (version, build_result) ->
       let build_result = List.hd build_result in
-      (* TODO Temp due to .txt being in version *)
-      let version = Fpath.(v version |> rem_ext |> to_string) in
       find_maintainer name >>= fun maintainer ->
       (match build_result with
        |`Exited 0 -> Ok []
