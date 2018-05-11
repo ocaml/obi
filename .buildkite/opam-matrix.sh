@@ -22,19 +22,13 @@ build "debian-9" "4.07"
 build "debian-9" "4.06"
 build "debian-9" "4.06+default-unsafe-string"
 build "debian-9" "4.06+flambda"
+build "debian-9" "4.05"
 build "alpine-3.7" "4.06"
 build "ubuntu-18.04" "4.06"
 build "fedora-27" "4.06"
 
 cat <<EOL
 - wait
-- label: "Rebuild index"
-  command:
-    - rm -rf obi-logs
-    - git clone -b builds --depth=1 git://github.com/avsm/obi-logs
-    - find obi-logs/ -type f
-  agents:
-    arch: "amd64"
-    docker: "true"
-    os: "linux"
+- trigger: "opam-index"
+  label: "Update Obi Index"
 EOL
