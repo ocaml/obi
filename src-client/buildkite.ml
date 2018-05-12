@@ -194,8 +194,8 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     let cmds = `A [
       `String (Fmt.strf "docker pull %s:%s" staging_hub_id tag);
       `String (Fmt.strf "mkdir -p %s/results" tag);
-      `String (Fmt.strf "docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __PKG__ > %s/results/__PKG__.txt" staging_hub_id tag tag);
-      `String (Fmt.strf "buildkite-agent artifact upload %s/results/__PKG__.txt" tag)
+      `String (Fmt.strf "opam list --all-versions --installable __PKG__ | xargs -n 1 -I __NAME__ docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install __NAME__ %s/results/__NAME__.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "buildkite-agent artifact upload '%s/results/*.txt'" tag)
     ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
@@ -206,7 +206,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact download 'opam-ci-install' .");
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s:%s opam list --all-versions --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "docker run %s:%s opam list --installable -s > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml && cat %s/build-*.yml | grep -v ^steps >> all.yml" tag);

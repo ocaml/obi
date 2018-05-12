@@ -5,20 +5,9 @@ cmd() {
     $@
 }
 
-version=`opam --version | cut -b 1`
-
-if [ $version -eq 1 ]; then
-    echo "Opam 2 required"
-    exit 1
-elif [ $version -eq 2 ]; then
-    export OPAMERRLOGLEN=0
-    export OPAMYES=1
-    cmd opam depext -iyj 2 $1 > $1.txt 2>&1
-    exitcode=$?
-    echo $exitcode >> $1.txt
-    cat $1.txt
-    exit 0
-else
-    echo "Internal error: contact the maintainer of opam-ci-scripts"
-    exit 1
-fi
+export OPAMERRLOGLEN=0
+export OPAMYES=1
+cmd opam depext -iyj 2 $1 > $2 2>&1
+exitcode=$?
+echo $exitcode >> $2
+exit 0
