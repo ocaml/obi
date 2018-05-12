@@ -7,7 +7,8 @@ cmd() {
 
 export OPAMERRLOGLEN=0
 export OPAMYES=1
-cmd opam depext -iyj 2 $1 > $2 2>&1
+cmd opam depext -iyj 2 $1 > $1.txt 2>&1
 exitcode=$?
-echo $exitcode >> $2
+echo $exitcode >> $1.txt
+cat $1.txt
 exit 0
