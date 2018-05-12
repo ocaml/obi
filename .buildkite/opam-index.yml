@@ -38,9 +38,9 @@ steps:
       - git -C index clean -dxf
       - buildkite-agent artifact download 'index.sxp' index
       - git -C index add .
-      - git -C index commit -m 'BuildKite Update'
+      - git -C index commit -m 'BuildKite Update' || true
       - git -C index push origin index -f
-      - rm -rf  index
+      - rm -rf index
     retry:
       automatic:
         limit: 3
@@ -54,7 +54,7 @@ steps:
       - git clone git@github.com:avsm/obi-logs -b builds
       - buildkite-agent artifact download 'maintainers.sxp' obi-logs
       - git -C obi-logs add maintainers.sxp
-      - git -C obi-logs commit -m 'BuildKite Maintainer Update'
+      - git -C obi-logs commit -m 'BuildKite Maintainer Update' || true
       - git -C obi-logs push origin builds
       - rm -rf obi-logs
     retry:
