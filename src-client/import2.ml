@@ -98,13 +98,12 @@ let pkg_metadata_of_batch logs_dir b =
   let params = b.params in
   C.map (fun pkg ->
     let name = pkg.name in
-    C.map (fun (version, build_result) ->
-      let build_result = List.hd build_result in
+    C.map (fun (version, res) ->
       find_maintainer name >>= fun maintainer ->
-      (match build_result with
+      (match res.code with
        |`Exited 0 -> Ok []
        |_ -> find_log logs_dir params rev name version) >>= fun log ->
-      let metadata = [ { Index.maintainer; params; rev; build_result; log } ] in
+           let metadata = [ { Index.maintainer; params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)
     ) pkg.versions >>= fun versions ->
     Ok { Index.name; versions}

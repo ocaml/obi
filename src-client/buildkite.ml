@@ -432,16 +432,15 @@ let process input_dir output_dir () =
   C.iter (fun pkg ->
     Logs.info (fun l -> l "Reading %a" Fpath.pp pkg);
     OS.File.read_lines Fpath.(logs // pkg) >>= fun lines ->
-    let exit_code = List.rev lines |> List.hd |> int_of_string in
+    let metainfo = List.rev lines |> List.hd in
+    let exit_code, start_time, end_time = Scanf.sscanf metainfo "%d %f %f" (fun a b c -> a,b,c) in
     begin match exit_code with
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
-    let res = `Exited exit_code in
+    let res = { code = `Exited exit_code; start_time; end_time } in
     pkg_version (Fpath.rem_ext pkg |> Fpath.to_string) >>= fun (name, version) ->
     let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
-    let results_for_ver = try List.assoc version versions with Not_found -> [] in
-    let results_for_ver = res :: results_for_ver in
-    let versions = (version, results_for_ver) :: (List.remove_assoc version versions) in
+    let versions = (version, res) :: (List.remove_assoc version versions) in
     Hashtbl.replace h name versions;
     Ok ()
   ) pkgs >>= fun () ->

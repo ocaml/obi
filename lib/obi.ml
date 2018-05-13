@@ -5,12 +5,15 @@ module Ocaml_version = struct
   include Ocaml_version_sexp
 end
 
-type build_result = [`Signaled of int | `Exited of int]
-  [@@deriving sexp]
+type build_result = {
+  code: [`Signaled of int | `Exited of int];
+  start_time: float;
+  end_time: float;
+} [@@deriving sexp]
 
 type pkg =
   { name: string
-  ; versions: (string * build_result list) list }
+  ; versions: (string * build_result) list }
   [@@deriving sexp]
 
 type params = {
@@ -30,6 +33,8 @@ module Index = struct
     { rev: string;
       params: params;
       build_result: [`Signaled of int | `Exited of int ];
+      start_time: float;
+      end_time: float;
       maintainer: string;
       log: string list;
   } [@@deriving sexp]
