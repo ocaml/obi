@@ -18,20 +18,25 @@ build() {
 EOL
 }
 
-build "debian-9" "4.08"
-build "debian-9" "4.07"
-build "debian-9" "4.06"
-build "debian-9" "4.06+default-unsafe-string"
-build "debian-9" "4.06+flambda"
-build "debian-9" "4.05"
-build "debian-9" "4.04"
-build "debian-9" "4.03"
-build "alpine-3.7" "4.06"
-build "ubuntu-18.04" "4.06"
-build "fedora-27" "4.06"
-
-cat <<EOL
+index() {
+  cat <<EOL
 - wait
 - trigger: "obi-index"
   label: "Update Obi Index"
 EOL
+}
+
+build "debian-9" "4.07"
+build "debian-9" "4.06"
+build "debian-9" "4.05"
+build "debian-9" "4.04"
+build "debian-9" "4.03"
+index
+build "debian-9" "4.08"
+build "debian-9" "4.06+default-unsafe-string"
+build "debian-9" "4.06+flambda"
+index
+build "alpine-3.7" "4.06"
+build "ubuntu-18.04" "4.06"
+build "fedora-27" "4.06"
+index
