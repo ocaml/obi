@@ -18,6 +18,7 @@ build() {
 EOL
 }
 
+build "debian-9" "4.08"
 build "debian-9" "4.07"
 build "debian-9" "4.06"
 build "debian-9" "4.06+default-unsafe-string"
