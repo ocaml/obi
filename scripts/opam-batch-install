@@ -11,7 +11,7 @@ cat toinstall.txt
 
 numlines=`wc -l < toinstall.txt`
 
-if [ $numlines -gt 4 ]; then
+if [ $numlines -gt 5 ]; then
   echo Spawning separate jobs for packages
   echo steps: > tobuild.yml
   for i in `cat toinstall.txt`; do
