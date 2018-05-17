@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 # Either build an artefact directly or spawn more if there are a lot of packages
 
 hub=$1
@@ -12,8 +12,16 @@ cat toinstall.txt
 numlines=`wc -l < toinstall.txt`
 
 if [ $numlines -gt 5 ]; then
-  tospawn=`tail -n +6 toinstall.txt`
-  tobuild=`head -5 toinstall.txt`
+  # workaround: bap takes forever to build in serial
+  if [[ $3 == bap-* ]]; then
+    echo --- Special case for bap
+    tospawn=`tail -n +2 toinstall.txt`
+    tobuild=`head -1 toinstall.txt`
+  else
+    echo --- Splitting first 5 packages
+    tospawn=`tail -n +6 toinstall.txt`
+    tobuild=`head -5 toinstall.txt`
+  fi
   echo --- Spawning jobs for excess packages
   echo steps: > tobuild.yml
   for i in $tospawn; do
