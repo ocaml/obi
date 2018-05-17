@@ -27,10 +27,10 @@ EOL
 }
 
 #build "debian-9" "4.07"
-build "debian-9" "4.06"
+#build "debian-9" "4.06"
 #build "debian-9" "4.05"
 #build "debian-9" "4.04"
-#build "debian-9" "4.03"
+build "debian-9" "4.03"
 #index
 #build "debian-9" "4.08"
 #build "debian-9" "4.06+default-unsafe-string"
