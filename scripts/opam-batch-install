@@ -19,7 +19,7 @@ if [ $numlines -gt 4 ]; then
 - label: $i
   agents:
     docker: "true"
-    arch: "x86_64"
+    arch: "amd64"
     os: "linux"
   timeout_in_minutes: 60
   retry:
