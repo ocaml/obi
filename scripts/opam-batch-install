@@ -1,0 +1,39 @@
+#!/bin/sh -ex
+# Either build an artefact directly or spawn more if there are a lot of packages
+
+hub=$1
+tag=$2
+pkg=$3
+
+docker run --rm $hub:$tag opam list -s --all-versions --installable $3 > toinstall.txt
+echo To install:
+cat toinstall.txt
+
+numlines=`wc -l < toinstall.txt`
+
+if [ $numlines -gt 4 ]; then
+  echo Spawning separate jobs for packages
+  echo steps: > tobuild.yml
+  for i in `cat toinstall.txt`; do
+    cat <<EOL >> tobuild.yml
+- label: $i
+  agents:
+    docker: "true"
+    arch: "x86_64"
+    os: "linux"
+  timeout_in_minutes: 60
+  retry:
+    automatic: true
+  command:
+  - mkdir -p $tag/results
+  - docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+  - buildkite-agent artifact upload $tag/results/$i.txt
+EOL
+  done
+  buildkite-agent pipeline upload tobuild.yml
+else
+  for i in `cat toinstall.txt`; do
+    docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+    buildkite-agent artifact upload $tag/results/$i.txt
+  done
+fi
