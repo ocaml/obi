@@ -35,6 +35,7 @@ EOL
 else
   for i in `cat toinstall.txt`; do
     docker pull $hub:$tag
+    mkdir -p $tag/results
     docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
     buildkite-agent artifact upload $tag/results/$i.txt
   done
