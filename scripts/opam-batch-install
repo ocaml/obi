@@ -41,6 +41,9 @@ fi
 
 echo "--- Building packages"
 for i in $tobuild; do
+  # workaround for https://github.com/ocaml/opam-repository/pull/12011
+  if [ "$i" = "flowtype.0.27.0" ]; then echo Skipping Flowtype 0.27.0; exit 0; fi
+  echo Building $i
   docker pull $hub:$tag
   mkdir -p $tag/results
   docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
