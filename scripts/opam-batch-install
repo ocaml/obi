@@ -5,6 +5,7 @@ hub=$1
 tag=$2
 pkg=$3
 
+docker pull $hub:$tag
 docker run --rm $hub:$tag opam list -s --all-versions --installable $3 > toinstall.txt
 echo To install:
 cat toinstall.txt
