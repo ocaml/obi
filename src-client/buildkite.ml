@@ -191,14 +191,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir [ opam_repo_rev, dfiles] );
   let bulk_tmpl =
-    let cmds = `A [
-      `String (Fmt.strf "docker pull %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "mkdir -p %s/results" tag);
-      `String (Fmt.strf "docker run --rm %s:%s opam list -s --all-versions --installable __PKG__ > toinstall.txt" staging_hub_id tag);
-      `String (Fmt.strf "cat toinstall.txt");
-      `String (Fmt.strf "for i in `cat toinstall.txt`; do (echo building $$i && docker run --rm -v opam2-archive:/home/opam/.opam/download-cache %s:%s opam-ci-install $$i > %s/results/$$i.txt && echo done $$i)& done; wait" staging_hub_id tag tag);
-      `String (Fmt.strf "buildkite-agent artifact upload '%s/results/*.txt'" tag)
-    ] in
+    let cmds = `A [ `String (Fmt.strf "./scripts/opam-batch-install %s %s __PKG__" staging_hub_id tag) ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
