@@ -31,6 +31,7 @@ if [ $numlines -gt 4 ]; then
   - buildkite-agent artifact upload $tag/results/$i.txt
 EOL
   done
+  cat tobuild.yml
   buildkite-agent pipeline upload tobuild.yml
 else
   for i in `cat toinstall.txt`; do
