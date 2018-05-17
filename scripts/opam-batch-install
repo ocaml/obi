@@ -12,7 +12,7 @@ cat toinstall.txt
 numlines=`wc -l < toinstall.txt`
 
 if [ $numlines -gt 5 ]; then
-  tospawn=`tail +6 toinstall.txt`
+  tospawn=`tail -n +6 toinstall.txt`
   tobuild=`head -5 toinstall.txt`
   echo --- Spawning jobs for excess packages
   echo steps: > tobuild.yml
