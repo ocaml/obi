@@ -17,7 +17,7 @@ steps:
     agents:
       docker: "true"
       pusher: "true"
-      arch: "amd64"
+      arch: "$ARCH"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
