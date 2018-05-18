@@ -493,11 +493,6 @@ let copts_t =
   let open Term in
   const copts $ staging_hub_id $ prod_hub_id $ results_dir
 
-let arch =
-   let doc = "CPU architecture to perform build on" in
-   let term = Arg.enum [("x86_64", `X86_64); ("aarch64", `Aarch64)] in
-   Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
-
 let buildv ov distro =
   Ocaml_version.of_string_exn ov
   |> fun ov ->
