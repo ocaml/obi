@@ -12,17 +12,21 @@ cat toinstall.txt
 
 numlines=`wc -l < toinstall.txt`
 
-if [ $numlines -gt 5 ]; then
-  # workaround: bap takes forever to build in serial
-  if [[ $3 == bap-* ]]; then
-    echo --- Special case for bap
-    tospawn=`tail -n +2 toinstall.txt`
-    tobuild=`head -1 toinstall.txt`
-  else
-    echo --- Splitting first 5 packages
-    tospawn=`tail -n +6 toinstall.txt`
-    tobuild=`head -5 toinstall.txt`
-  fi
+# workaround: bap takes forever to build in serial
+if [[ $3 == bap-* ]]; then
+  echo --- Special case for bap
+  tospawn=`tail -n +2 toinstall.txt`
+  tobuild=`head -1 toinstall.txt`
+elif [ $numlines -gt 4 ]; then
+  echo --- Splitting packages
+  tospawn=`tail -n +5 toinstall.txt`
+  tobuild=`head -4 toinstall.txt`
+else
+  tobuild=`cat toinstall.txt`
+  tospawn=
+fi
+
+if [ ! -z "$tospawn" ]; then
   echo --- Spawning jobs for excess packages
   echo steps: > tobuild.yml
   for i in $tospawn; do
@@ -36,25 +40,21 @@ if [ $numlines -gt 5 ]; then
   retry:
     automatic: true
   command:
-  - docker pull $hub:$tag
   - mkdir -p $tag/results
+  - docker pull $hub:$tag
   - docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
   - buildkite-agent artifact upload $tag/results/$i.txt
 EOL
   done
   cat tobuild.yml
   buildkite-agent pipeline upload tobuild.yml
-else
-  tobuild=`cat toinstall.txt`
-fi
+end
 
 echo "--- Building packages"
 for i in $tobuild; do
-  # workaround for https://github.com/ocaml/opam-repository/pull/12011
-  if [ "$i" = "flowtype.0.27.0" ]; then echo Skipping Flowtype 0.27.0; exit 0; fi
-  echo Building $i
-  docker pull $hub:$tag
+  echo --- Building $i
   mkdir -p $tag/results
+  docker pull $hub:$tag
   docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
   buildkite-agent artifact upload $tag/results/$i.txt
 done
