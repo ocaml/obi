@@ -7,7 +7,7 @@ arch=$3
 pkg=$4
 
 docker pull $hub:$tag
-docker run --rm $hub:$tag opam list -s --all-versions --installable $3 > toinstall.txt
+docker run --rm $hub:$tag opam list -s --all-versions --installable $pkg > toinstall.txt
 echo To install:
 cat toinstall.txt
 
