@@ -3,7 +3,8 @@
 
 hub=$1
 tag=$2
-pkg=$3
+arch=$3
+pkg=$4
 
 docker pull $hub:$tag
 docker run --rm $hub:$tag opam list -s --all-versions --installable $3 > toinstall.txt
@@ -34,7 +35,7 @@ if [ ! -z "$tospawn" ]; then
 - label: ":right-facing_fist:"
   agents:
     docker: "true"
-    arch: "amd64"
+    arch: "$arch"
     os: "linux"
   timeout_in_minutes: 60
   retry:

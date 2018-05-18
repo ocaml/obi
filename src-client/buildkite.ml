@@ -191,7 +191,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir [ opam_repo_rev, dfiles] );
   let bulk_tmpl =
-    let cmds = `A [ `String (Fmt.strf "./scripts/opam-batch-install %s %s __PKG__" staging_hub_id tag) ] in
+    let cmds = `A [ `String (Fmt.strf "./scripts/opam-batch-install %s %s %s __PKG__" staging_hub_id tag (OV.string_of_arch arch)) ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
