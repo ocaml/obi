@@ -28,15 +28,19 @@ index() {
 EOL
 }
 
-build "debian-9" "4.07" "amd64"
-build "debian-9" "4.06" "amd64"
-build "debian-9" "4.05" "amd64"
-build "debian-9" "4.04" "amd64"
-build "debian-9" "4.03" "amd64"
-build "debian-9" "4.08" "amd64"
-build "debian-9" "4.06+default-unsafe-string" "amd64"
-build "debian-9" "4.06+flambda" "amd64"
-build "alpine-3.7" "4.06" "amd64"
-build "ubuntu-18.04" "4.06" "amd64"
-build "fedora-27" "4.06" "amd64"
+if [ "$ARCH" == "arm64" ]; then
+  build "debian-9" "4.06" "arm64"
+else
+  build "debian-9" "4.07" "amd64"
+  build "debian-9" "4.06" "amd64"
+  build "debian-9" "4.05" "amd64"
+  build "debian-9" "4.04" "amd64"
+  build "debian-9" "4.03" "amd64"
+  build "debian-9" "4.08" "amd64"
+  build "debian-9" "4.06+default-unsafe-string" "amd64"
+  build "debian-9" "4.06+flambda" "amd64"
+  build "alpine-3.7" "4.06" "amd64"
+  build "ubuntu-18.04" "4.06" "amd64"
+  build "fedora-27" "4.06" "amd64"
+fi
 index
