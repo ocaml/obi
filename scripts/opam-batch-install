@@ -48,7 +48,7 @@ EOL
   done
   cat tobuild.yml
   buildkite-agent pipeline upload tobuild.yml
-end
+fi
 
 echo "--- Building packages"
 for i in $tobuild; do
