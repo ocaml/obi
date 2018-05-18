@@ -459,7 +459,7 @@ let fpath = Arg.conv ~docv:"PATH" (Fpath.of_string, Fpath.pp)
 
 let arch =
   let doc = "CPU architecture to perform build on" in
-  let term = Arg.enum [("x86_64", `X86_64); ("aarch64", `Aarch64)] in
+  let term = Arg.enum [("amd64", `X86_64); ("arm64", `Aarch64)] in
   Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
 
 let opam_repo_rev =
