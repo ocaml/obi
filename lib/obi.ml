@@ -35,13 +35,13 @@ module Index = struct
       build_result: [`Signaled of int | `Exited of int ];
       start_time: float;
       end_time: float;
-      maintainer: string;
       log: string list;
   } [@@deriving sexp]
   type pkg =
-  { name: string;
-    mutable versions: (string * metadata list) list 
-  } [@@deriving sexp]
+   { name: string;
+     mutable maintainers: string list;
+     mutable versions: (string * metadata list) list 
+   } [@@deriving sexp]
   type pkgs = pkg list [@@deriving sexp]
 end
 

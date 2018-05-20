@@ -98,15 +98,18 @@ let pkg_metadata_of_batch logs_dir b =
   let params = b.params in
   C.map (fun pkg ->
     let name = pkg.name in
+    let ms = ref [] in
     C.map (fun (version, res) ->
       find_maintainer name >>= fun maintainer ->
+        (if not (List.mem maintainer !ms) then ms := maintainer :: !ms);
       (match res.code with
        |`Exited 0 -> Ok []
        |_ -> find_log logs_dir params rev name version) >>= fun log ->
-           let metadata = [ { Index.maintainer; params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
+           let metadata = [ { Index.params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)
     ) pkg.versions >>= fun versions ->
-    Ok { Index.name; versions}
+    let maintainers = !ms in
+    Ok { Index.name; versions; maintainers}
   ) b.pkgs
 
 let merge_pkgs (l:Obi.Index.pkgs list) =
@@ -119,7 +122,7 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
       let p =
         match List.find_opt (fun p -> p.name = name) !r with
         | None ->
-           let p = { name; versions=[] } in
+           let p = { name; versions=[]; maintainers=[] } in
            r := p :: !r;
            p
         | Some p -> p
@@ -134,6 +137,10 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
         ) p.versions pkg.versions
       in
       p.versions <- versions;
+      let maintainers =
+        List.fold_left
+          (fun a m -> if List.mem m a then a else m::a) p.maintainers pkg.maintainers in
+      p.maintainers <- maintainers;
     ) pkgs
   ) l;
   !r

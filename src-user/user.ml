@@ -136,10 +136,8 @@ let copts maintainers all_versions =
 
 let check_maintainer ~maintainers pkg =
   let open Obi.Index in
-  (* TODO merge maintainer into main pkg record *)
-  List.fold_left (fun a (_,m) ->
-    (* TODO substring test *)
-   if List.exists (fun m -> List.mem m.maintainer maintainers) m then true else a) false pkg.versions
+  (* TODO substring test *)
+  List.exists (fun m -> List.mem m maintainers) pkg.maintainers
 
 let render_package pkg =
   let open Obi.Index in
