@@ -13,17 +13,18 @@ module U = struct
   let c7 = "⑦ "
   let c8 = "⑧ "
 
-  let of_ov = function
-  | "4.03" -> c3
-  | "4.04" -> c4
-  | "4.05" -> c5
-  | "4.06" -> c6
-  | "4.07" -> c7
-  | "4.08" -> c8
-  | _ -> "?"
-
   let tick = "✓"
   let cross = "✘"
+
+  
+  let debian = "🄳 "
+  let fedora = "🄵 "
+  let ubuntu = "🅄 "
+  let opensuse = "🅂 "
+  let alpine = "🄰 "
+
+  let flambda ="ﬂ "
+  let ss = "∬ "
 end
 
 module A = struct
@@ -34,6 +35,7 @@ module A = struct
   let ov_stable_fl = OV.of_string_exn "4.06+flambda"
   let base_distro = `Debian `V9
   let other_distros = [`Alpine `V3_7; `Ubuntu `V18_04; `Fedora `V27]
+  let distros = base_distro :: other_distros
 
   let find ?(distro=base_distro) ?(ov=ov_stable) ?(arch=`X86_64) (m:metadata list) =
     List.find_opt (fun m -> m.params.distro=distro && m.params.ov=ov && m.params.arch=arch) m
@@ -80,30 +82,64 @@ end
 module S = struct
   open Obi.Index
 
+  let u_of_ov =
+    let open U in function
+    | "4.03" -> c3
+    | "4.04" -> c4
+    | "4.05" -> c5
+    | "4.06" -> c6
+    | "4.07" -> c7
+    | "4.08" -> c8
+    | _ -> "?"
+
+  let u_of_distro =
+    let open U in function
+    | `Debian _ -> debian
+    | `Fedora _ -> fedora
+    | `OpenSUSE _ -> opensuse
+    | `Alpine _ -> alpine
+    | `Ubuntu _ -> ubuntu
+    | _ -> "?"
+
   let compilers ppf (m:metadata list) =
     List.iter (fun ov ->
-      let u = U.of_ov (OV.to_string ov) in
+      let u = u_of_ov (OV.to_string ov) in
       match A.find ~ov m with
       | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
       | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
       | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
     ) A.ovs 
 
+  let distros ppf m =
+    List.iter (fun distro ->
+      let u = u_of_distro distro in
+      match A.find ~distro m with
+      | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
+      | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
+      | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
+    ) A.distros
+
   let variants ppf m =
     if A.test_safe_string m = Some false then
-      Fmt.(pf ppf "%a" (styled `Red string) " ss");
+      Fmt.(pf ppf "%a" (styled `Red string) U.ss);
     if A.test_flambda m = Some false then
-      Fmt.(pf ppf "%a" (styled `Red string) " fl");
-    List.iter (fun distro ->
-      Fmt.(pf ppf "%a" (styled `Red string) (" " ^ (D.tag_of_distro distro)))
-    ) (A.find_distro_fails m)
+      Fmt.(pf ppf "%a" (styled `Red string) U.flambda);
 end
 
-let check_maintainer pkg =
+type copts = {
+  maintainers: string list;
+  all_versions: bool;
+}
+
+let copts maintainers all_versions =
+  { maintainers; all_versions }
+
+let check_maintainer ~maintainers pkg =
   let open Obi.Index in
   (* TODO merge maintainer into main pkg record *)
   List.fold_left (fun a (_,m) ->
-   if List.exists (fun m -> m.maintainer = "anil@recoil.org") m then true else a) false pkg.versions
+    (* TODO substring test *)
+   if List.exists (fun m -> List.mem m.maintainer maintainers) m then true else a) false pkg.versions
 
 let render_package pkg =
   let open Obi.Index in
@@ -112,16 +148,19 @@ let render_package pkg =
     (* OCaml version builds *)
     Fmt.(pf stdout "@[%10s " version);
     S.compilers Fmt.stdout metadata;
+    Fmt.(pf stdout "  ");
+    S.distros Fmt.stdout metadata;
+    Fmt.(pf stdout "  ");
     S.variants Fmt.stdout metadata;
     Fmt.(pf stdout "@]@\n");
   ) pkg.versions
 
-let show_status maintainer () =
+let show_status {maintainers; all_versions} () =
   let open Obi.Index in
   Repos.init () >>= fun pkgs ->
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
-    if check_maintainer pkg then
+    if check_maintainer ~maintainers pkg then
       render_package pkg
   ) pkgs;
   Ok ()
@@ -147,20 +186,31 @@ let setup_logs =
     $ Fmt_cli.style_renderer ~docs:global_option_section ()
     $ Logs_cli.level ~docs:global_option_section ())
 
+let copts_t =
+  let docs = Manpage.s_common_options in
+  let maintainer =
+    let doc = "List of maintainer strings to filter packages on" in
+    let open Arg in
+    value & opt_all string []
+    & info ["maintainer"; "m"] ~docv:"MAINTAINER" ~doc
+  in
+  let all_versions =
+    let doc = "Show all versions of packages" in
+    let open Arg in
+    value & opt bool false
+    & info ["all-versions";"-a"] ~docv:"ALL_VERSIONS" ~doc
+  in
+  let open Term in
+  const copts $ maintainer $ all_versions
+
 let status_cmd =
   let doc = "obi status" in
   let exits = Term.default_exits in
-  let filter_t =
-    let doc = "maintainer filter" in
-    let open Arg in
-    value & opt string ""
-    & info ["filter"; "f"] ~docv:"FILTER" ~doc
-  in
   let man =
     [ `S Manpage.s_description
     ; `P "obi status." ]
   in
-  ( Term.(term_result (const show_status $ filter_t $ setup_logs))
+  ( Term.(term_result (const show_status $ copts_t $ setup_logs))
   , Term.info "status" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 let errors_cmd =
