@@ -53,6 +53,9 @@ module A = struct
   let is_success m =
     m.build_result = `Exited 0
 
+  let latest_version pkg =
+    List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) pkg.versions |> List.hd
+
   let test_two_versions a b m =
     let ss = find ~ov:a m in
     let uss = find ~ov:b m in
@@ -158,8 +161,8 @@ let check_maintainer ~maintainers pkg =
     List.exists (fun p ->
       String.find_sub ~sub p <> None) l) maintainers
 
-let render_package_version version metadata =
-  Fmt.(pf stdout "@[%10s " version);
+let render_package_version (version,metadata) =
+  Fmt.(pf stdout "%10s " version);
   S.compilers Fmt.stdout metadata;
   Fmt.(pf stdout "  ");
   S.distros Fmt.stdout metadata;
@@ -167,7 +170,7 @@ let render_package_version version metadata =
   S.arches Fmt.stdout metadata;
   Fmt.(pf stdout "  ");
   S.variants Fmt.stdout metadata;
-  Fmt.(pf stdout "@]@\n")
+  Fmt.(pf stdout "@\n")
 
 let render_package_logs version metadata =
   let open Obi.Index in
@@ -182,18 +185,23 @@ let render_package_logs version metadata =
     List.iter print_endline (Wrapper.wrap w l)
   ) metadata.log
 
-let render_package pkg =
+let render_package ~all_versions pkg =
   let open Obi.Index in
-  printf "%s:\n" pkg.name;
-  List.iter (fun (version,metadata) ->
-    render_package_version version metadata
-  ) pkg.versions
+  match all_versions with
+  | true ->
+    printf "%s:\n" pkg.name;
+    List.iter render_package_version pkg.versions
+  | false ->
+    let version = A.latest_version pkg in
+    printf "%30s " pkg.name;
+    render_package_version version;
+    printf "\n%!"
 
 let render_package_details pkg =
   let open Obi.Index in
   Fmt.(pf stdout "%a:@\n" (styled `Bold string) pkg.name);
   List.iter (fun (version, metadata) ->
-    render_package_version version metadata;
+    render_package_version (version, metadata);
     List.iter (render_package_logs version) metadata;
     Fmt.(pf stdout "@\n");
   ) pkg.versions
@@ -204,7 +212,7 @@ let show_status {maintainers; all_versions} () =
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
     if check_maintainer ~maintainers pkg then
-      render_package pkg
+      render_package ~all_versions pkg
   ) pkgs;
   Ok ()
 
@@ -239,8 +247,8 @@ let copts_t =
   let all_versions =
     let doc = "Show all versions of packages" in
     let open Arg in
-    value & opt bool false
-    & info ["all-versions";"-a"] ~docv:"ALL_VERSIONS" ~doc
+    value & flag
+    & info ["all-versions";"a"] ~docv:"ALL_VERSIONS" ~doc
   in
   let open Term in
   const copts $ maintainer $ all_versions
