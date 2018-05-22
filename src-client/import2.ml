@@ -42,6 +42,7 @@ let load_maintainers dir =
 let save_maintainers dir =
   let f = Fpath.(dir / "maintainers.sxp" |> to_string) in
   let m = Hashtbl.fold (fun k v a -> (k,v)::a) maintainers [] in
+  let m = List.sort (fun (a,_) (b,_) -> String.compare a b) m in
   Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_maintainers m)
 
 let load_tags dir =
@@ -53,6 +54,7 @@ let load_tags dir =
 let save_tags dir =
   let f = Fpath.(dir / "tags.sxp" |> to_string) in
   let m = Hashtbl.fold (fun k v a -> (k,v)::a) tags [] in
+  let m = List.sort (fun (a,_) (b,_) -> String.compare a b) m in
   Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_tags m)
 
 let info_of_rev tdir rev =
