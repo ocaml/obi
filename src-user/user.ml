@@ -195,7 +195,7 @@ let render_package_details pkg =
   List.iter (fun (version, metadata) ->
     render_package_version version metadata;
     List.iter (render_package_logs version) metadata;
-    Fmt.(pf stdout "@\n%a@\n@\n" (styled `Blue string)"----");
+    Fmt.(pf stdout "@\n");
   ) pkg.versions
 
 let show_status {maintainers; all_versions} () =
@@ -208,7 +208,7 @@ let show_status {maintainers; all_versions} () =
   ) pkgs;
   Ok ()
 
-let show_errors pkg () =
+let show_logs pkg () =
   let open Obi.Index in
   (* TODO split on version *)
   Repos.init () >>= fun pkgs ->
@@ -255,16 +255,16 @@ let status_cmd =
   ( Term.(term_result (const show_status $ copts_t $ setup_logs))
   , Term.info "status" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
-let errors_cmd =
-  let doc = "obi errors" in
+let logs_cmd =
+  let doc = "obi logs" in
   let exits = Term.default_exits in
   let pkg_t = Arg.(required & pos 0 (some string) None & info [] ~doc) in
   let man =
     [ `S Manpage.s_description
-    ; `P "obi errors." ]
+    ; `P "obi logs." ]
   in
-  ( Term.(term_result (const show_errors $ pkg_t $ setup_logs))
-  , Term.info "errors" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+  ( Term.(term_result (const show_logs $ pkg_t $ setup_logs))
+  , Term.info "logs" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 
 let default_cmd =
@@ -274,7 +274,7 @@ let default_cmd =
   , Term.info "obi" ~version:"v1.0.0" ~doc ~sdocs )
 
 
-let cmds = [ status_cmd; errors_cmd ]
+let cmds = [ status_cmd; logs_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
 

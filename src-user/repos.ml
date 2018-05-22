@@ -27,11 +27,11 @@ let init () =
   OS.Dir.exists local_logs_repo >>= fun repo_exists ->
   (if repo_exists then begin
     Logs.debug (fun l -> l "Fetching latest Obi logs");
-    run_git_in_repo ~repo:local_logs_repo ["fetch"; "origin"; "index"] >>= fun () ->
+    run_git_in_repo ~repo:local_logs_repo ["fetch"; "-q"; "origin"; "index"] >>= fun () ->
     run_git_in_repo ~repo:local_logs_repo ["reset"; "--hard"; "@{u}"]
   end else begin
     Logs.debug (fun l -> l "Cloning fresh Obi logs");
-    run_git ["clone"; "--depth=1"; "-b"; "index"; remote_logs_repo (); Cmd.p local_logs_repo]
+    run_git ["clone"; "-q"; "--depth=1"; "-b"; "index"; remote_logs_repo (); Cmd.p local_logs_repo]
   end) >>= fun () ->
   (* TODO check version in obi-logs *)
   (* TODO store multiple versions based on date? *)
