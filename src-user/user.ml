@@ -185,7 +185,6 @@ let setup_logs =
     $ Logs_cli.level ~docs:global_option_section ())
 
 let copts_t =
-  let docs = Manpage.s_common_options in
   let maintainer =
     let doc = "List of maintainer strings to filter packages on" in
     let open Arg in

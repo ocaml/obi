@@ -41,7 +41,7 @@ let load_maintainers dir =
 
 let save_maintainers dir =
   let f = Fpath.(dir / "maintainers.sxp" |> to_string) in
-  let m = Hashtbl.fold (fun k v a -> (k,v)::a) maintainers []  in
+  let m = Hashtbl.fold (fun k v a -> (k,v)::a) maintainers [] in
   Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_maintainers m)
 
 let load_tags dir =
@@ -52,7 +52,7 @@ let load_tags dir =
 
 let save_tags dir =
   let f = Fpath.(dir / "tags.sxp" |> to_string) in
-  let m = Hashtbl.fold (fun k v a -> (k,v)::a) tags []  in
+  let m = Hashtbl.fold (fun k v a -> (k,v)::a) tags [] in
   Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_tags m)
 
 let info_of_rev tdir rev =
@@ -74,8 +74,12 @@ let find_maintainer pkg =
 
 let parse_string_list buf =
   let open Scanf in
-  let rec fn ic = kscanf ic (fun _ _ -> []) "%S %r" fn (fun a b -> a::b) in
-  fn (Scanning.from_string buf)
+  (* TODO Heuristic until https://github.com/ocaml/opam/issues/3365 is resolved *)
+  match String.find (function ' ' | '"' -> true | _ -> false) buf with
+  | Some _ -> 
+     let rec fn ic = kscanf ic (fun _ _ -> []) "%S %r" fn (fun a b -> a::b) in
+     fn (Scanning.from_string buf)
+  | None -> [buf]
 
 let find_tags pkg =
   match Hashtbl.find_opt tags pkg with
