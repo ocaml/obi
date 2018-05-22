@@ -16,7 +16,7 @@ steps:
       - 'git clone -b builds --depth=1 git://github.com/avsm/obi-logs'
       - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
       - 'buildkite-agent artifact upload index.sxp'
-      - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp'
+      - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp && buildkite-agent artifact upload tags.sxp'
     agents:
       docker: "true"
     plugins:
@@ -47,15 +47,16 @@ steps:
         limit: 3
     agents:
       githubpusher: "true"
-  - label: 'Push Maintainer Cache'
+  - label: 'Push Maintainer and Tag Cache'
     command:
       - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
       - git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'
       - rm -rf obi-logs
       - git clone git@github.com:avsm/obi-logs -b builds
       - buildkite-agent artifact download 'maintainers.sxp' obi-logs
-      - git -C obi-logs add maintainers.sxp
-      - git -C obi-logs commit -m 'BuildKite Maintainer Update' || true
+      - buildkite-agent artifact download 'tags.sxp' obi-logs
+      - git -C obi-logs add tags.sxp maintainers.sxp
+      - git -C obi-logs commit -m 'BuildKite Cache Update' || true
       - git -C obi-logs push origin builds
       - rm -rf obi-logs
     retry:
