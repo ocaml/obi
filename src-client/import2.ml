@@ -47,7 +47,7 @@ let save_maintainers dir =
 let load_tags dir =
   let m = try
      Sexplib.Sexp.load_sexp_conv_exn Fpath.(dir / "tags.sxp" |> to_string) Obi.Index.tags_of_sexp
-    with _ -> [] in
+    with _ -> Logs.info (fun l -> l "Unable to load tags cache"); [] in
   List.iter (fun (k,v) -> Hashtbl.add tags k v) m
 
 let save_tags dir =
@@ -72,14 +72,17 @@ let find_maintainer pkg =
     Hashtbl.add maintainers pkg m;
     Ok m
 
+let parse_string_list buf =
+  let open Scanf in
+  let rec fn ic = kscanf ic (fun _ _ -> []) "%S %r" fn (fun a b -> a::b) in
+  fn (Scanning.from_string buf)
+
 let find_tags pkg =
   match Hashtbl.find_opt tags pkg with
   | Some m -> Ok m
   | None ->
       OS.Cmd.(run_out (Cmd.(v "opam" % "info" % "-f" % "tags:" % pkg)) |> to_string) >>= fun t ->
-      (* TODO broken - this needs to be Sscanf %S with continuation *)
-      let t' = String.trim t |> String.cuts ~empty:false ~sep:" " |> List.filter (fun s -> s <> "") in
-      let t' = List.map (fun a -> Scanf.sscanf a "%s" (fun a -> a)) t' in
+      let t' = String.trim t |> parse_string_list in
       Hashtbl.add tags pkg t';
       Ok t'
 
@@ -178,6 +181,8 @@ let summarise input_dir (opam_dir:Fpath.t) =
   let logs_dir = Fpath.(input_dir / "logs") in
   Logs.info (fun l -> l "Loading maintainer cache");
   load_maintainers input_dir;
+  Logs.info (fun l -> l "Loading tags cache");
+  load_tags input_dir;
   OS.Dir.contents ~rel:true meta_dir >>=
   C.iter (fun os ->
     let dir = Fpath.(meta_dir // os) in
@@ -230,6 +235,7 @@ let summarise input_dir (opam_dir:Fpath.t) =
     C.map (pkg_metadata_of_batch logs_dir) latest >>= fun latest ->
     let pkgs = merge_pkgs latest in
     save_maintainers input_dir;
+    save_tags input_dir;
     print_endline (ps Obi.Index.sexp_of_pkgs pkgs);
 
     Ok ()
