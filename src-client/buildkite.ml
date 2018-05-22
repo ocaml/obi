@@ -208,7 +208,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "(for i in `cat %s/pkgs.txt`; do cat %s/build-$$i.yml; done) | grep -v ^steps >> all.yml" tag tag);
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
     ] in
-  let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
+  let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents "amd64"; docker_login ]) in
   let gather_cmds = `A [
     `String (Fmt.strf "rm -rf %s" tag);
     `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' ." tag);
