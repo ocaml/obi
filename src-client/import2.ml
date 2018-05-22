@@ -31,6 +31,7 @@ let h = Hashtbl.create 10
 let by_param = Hashtbl.create 10
 let revs = Hashtbl.create 10
 let maintainers = Hashtbl.create 100
+let tags = Hashtbl.create 100
 
 let load_maintainers dir =
   let m = try
@@ -42,6 +43,17 @@ let save_maintainers dir =
   let f = Fpath.(dir / "maintainers.sxp" |> to_string) in
   let m = Hashtbl.fold (fun k v a -> (k,v)::a) maintainers []  in
   Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_maintainers m)
+
+let load_tags dir =
+  let m = try
+     Sexplib.Sexp.load_sexp_conv_exn Fpath.(dir / "tags.sxp" |> to_string) Obi.Index.tags_of_sexp
+    with _ -> [] in
+  List.iter (fun (k,v) -> Hashtbl.add tags k v) m
+
+let save_tags dir =
+  let f = Fpath.(dir / "tags.sxp" |> to_string) in
+  let m = Hashtbl.fold (fun k v a -> (k,v)::a) tags []  in
+  Sexplib.Sexp.save_hum f (Obi.Index.sexp_of_tags m)
 
 let info_of_rev tdir rev =
    let run_git args = OS.Cmd.(run_out (Cmd.(v "git" % "-C" % p tdir %% args)) |> to_string) in
@@ -59,6 +71,17 @@ let find_maintainer pkg =
     let m = String.trim maintainer in
     Hashtbl.add maintainers pkg m;
     Ok m
+
+let find_tags pkg =
+  match Hashtbl.find_opt tags pkg with
+  | Some m -> Ok m
+  | None ->
+      OS.Cmd.(run_out (Cmd.(v "opam" % "info" % "-f" % "tags:" % pkg)) |> to_string) >>= fun t ->
+      (* TODO broken - this needs to be Sscanf %S with continuation *)
+      let t' = String.trim t |> String.cuts ~empty:false ~sep:" " |> List.filter (fun s -> s <> "") in
+      let t' = List.map (fun a -> Scanf.sscanf a "%s" (fun a -> a)) t' in
+      Hashtbl.add tags pkg t';
+      Ok t'
 
 let find_log logs_dir params rev pkg version =
   let open Obi in
@@ -99,17 +122,21 @@ let pkg_metadata_of_batch logs_dir b =
   C.map (fun pkg ->
     let name = pkg.name in
     let ms = ref [] in
+    let tags = ref [] in 
     C.map (fun (version, res) ->
       find_maintainer name >>= fun maintainer ->
-        (if not (List.mem maintainer !ms) then ms := maintainer :: !ms);
+      find_tags name >>= fun ts ->
+      ms := maintainer :: !ms;
+      List.iter (fun t -> tags := t :: !tags) ts;
       (match res.code with
        |`Exited 0 -> Ok []
        |_ -> find_log logs_dir params rev name version) >>= fun log ->
            let metadata = [ { Index.params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)
     ) pkg.versions >>= fun versions ->
-    let maintainers = !ms in
-    Ok { Index.name; versions; maintainers}
+    let maintainers = List.sort_uniq String.compare !ms in
+    let tags = List.sort_uniq String.compare !tags in
+    Ok { Index.name; versions; maintainers; tags}
   ) b.pkgs
 
 let merge_pkgs (l:Obi.Index.pkgs list) =
@@ -122,7 +149,7 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
       let p =
         match List.find_opt (fun p -> p.name = name) !r with
         | None ->
-           let p = { name; versions=[]; maintainers=[] } in
+            let p = { name; versions=[]; maintainers=[]; tags=[] } in
            r := p :: !r;
            p
         | Some p -> p
@@ -137,6 +164,7 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
         ) p.versions pkg.versions
       in
       p.versions <- versions;
+      p.tags <- List.sort_uniq String.compare (pkg.tags @ p.tags);
       let maintainers =
         List.fold_left
           (fun a m -> if List.mem m a then a else m::a) p.maintainers pkg.maintainers in

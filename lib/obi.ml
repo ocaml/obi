@@ -28,7 +28,7 @@ type batch =
 
 module Index = struct
   type maintainers = (string * string) list [@@deriving sexp]
-
+  type tags = (string * string list) list [@@deriving sexp]
   type metadata =
     { rev: string;
       params: params;
@@ -40,6 +40,7 @@ module Index = struct
   type pkg =
    { name: string;
      mutable maintainers: string list;
+     mutable tags: string list;
      mutable versions: (string * metadata list) list 
    } [@@deriving sexp]
   type pkgs = pkg list [@@deriving sexp]
