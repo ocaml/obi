@@ -16,7 +16,6 @@ module U = struct
   let tick = "✓"
   let cross = "✘"
 
-  
   let debian = "🄳 "
   let fedora = "🄵 "
   let ubuntu = "🅄 "
@@ -159,20 +158,44 @@ let check_maintainer ~maintainers pkg =
     List.exists (fun p ->
       String.find_sub ~sub p <> None) l) maintainers
 
+let render_package_version version metadata =
+  Fmt.(pf stdout "@[%10s " version);
+  S.compilers Fmt.stdout metadata;
+  Fmt.(pf stdout "  ");
+  S.distros Fmt.stdout metadata;
+  Fmt.(pf stdout "  ");
+  S.arches Fmt.stdout metadata;
+  Fmt.(pf stdout "  ");
+  S.variants Fmt.stdout metadata;
+  Fmt.(pf stdout "@]@\n")
+
+let render_package_logs version metadata =
+  let open Obi.Index in
+  let p = metadata.params in
+  match metadata.log with
+  | [] -> ()
+  | logs ->
+    Fmt.(pf stdout "@\n%a %a %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
+     (OV.to_string p.ov) (D.human_readable_string_of_distro p.distro) (OV.string_of_arch p.arch) );
+  let w = Wrapper.make ~initial_indent:" " ~subsequent_indent:" " ~drop_whitespace:true 100 in
+  List.iter (fun l ->
+    List.iter print_endline (Wrapper.wrap w l)
+  ) metadata.log
+
 let render_package pkg =
   let open Obi.Index in
   printf "%s:\n" pkg.name;
   List.iter (fun (version,metadata) ->
-    (* OCaml version builds *)
-    Fmt.(pf stdout "@[%10s " version);
-    S.compilers Fmt.stdout metadata;
-    Fmt.(pf stdout "  ");
-    S.distros Fmt.stdout metadata;
-    Fmt.(pf stdout "  ");
-    S.arches Fmt.stdout metadata;
-    Fmt.(pf stdout "  ");
-    S.variants Fmt.stdout metadata;
-    Fmt.(pf stdout "@]@\n");
+    render_package_version version metadata
+  ) pkg.versions
+
+let render_package_details pkg =
+  let open Obi.Index in
+  Fmt.(pf stdout "%a:@\n" (styled `Bold string) pkg.name);
+  List.iter (fun (version, metadata) ->
+    render_package_version version metadata;
+    List.iter (render_package_logs version) metadata;
+    Fmt.(pf stdout "@\n%a@\n@\n" (styled `Blue string)"----");
   ) pkg.versions
 
 let show_status {maintainers; all_versions} () =
@@ -192,8 +215,8 @@ let show_errors pkg () =
   match List.find_opt (fun p -> p.name = pkg) pkgs with
   | None -> Error (`Msg "Package not found")
   | Some pkg ->
-      render_package pkg;
-      Ok ()
+     render_package_details pkg;
+     Ok ()
 
 open Cmdliner
 let setup_logs =
