@@ -2,7 +2,7 @@
 
 (executables
  ((names (user))
-  (public_names (obi))
+  (public_names (opam-ci))
   (libraries (obi bos cmdliner fmt.cli logs.fmt fmt.tty logs.cli rresult dockerfile-opam textwrap))
-  (package obi)
+  (package opam-ci)
 ))
