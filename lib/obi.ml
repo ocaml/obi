@@ -17,7 +17,7 @@ type pkg =
   [@@deriving sexp]
 
 type params = {
-  arch: [ `X86_64 | `Aarch64 ];
+  arch: Dockerfile_distro.arch;
   distro : Dockerfile_distro.t;
   ov: Ocaml_version.t;
 } [@@deriving sexp]
