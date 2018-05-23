@@ -27,6 +27,7 @@ module U = struct
 
   let amd64 = "Ⓧ "
   let arm64 = "Ⓐ "
+  let ppc64 = "Ⓟ "
 end
 
 module A = struct
@@ -37,7 +38,6 @@ module A = struct
   let ov_stable_fl = OV.of_string_exn "4.06+flambda"
   let base_distro = `Debian `V9
   let other_distros = [`Alpine `V3_7; `Ubuntu `V18_04; `Fedora `V27]
-  let arches =  [`X86_64; `Aarch64]
   let distros = base_distro :: other_distros
 
   let find ?(distro=base_distro) ?(ov=ov_stable) ?(arch=`X86_64) (m:metadata list) =
@@ -111,6 +111,7 @@ module S = struct
     let open U in function
     | `X86_64 -> amd64
     | `Aarch64 -> arm64
+    | `Ppc64le -> ppc64
 
   let compilers ppf (m:metadata list) =
     List.iter (fun ov ->
@@ -137,7 +138,7 @@ module S = struct
       | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
       | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
       | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
-    ) A.arches
+    ) OV.arches
 
   let variants ppf m =
     if A.test_safe_string m = Some false then
