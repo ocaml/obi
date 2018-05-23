@@ -160,8 +160,6 @@ This is all possible thanks to generous infrastructure contributions from [Packe
   |} prod_hub_id prod_hub_id prod_hub_id prod_hub_id (D.human_readable_string_of_distro D.master_distro) OV.(to_string Releases.latest) prod_hub_id prod_hub_id latest_distros active_distros dev_versions_of_ocaml in
   intro
 
-let arches = [ `X86_64; `Aarch64 ]
-
 let docker_login = "plugins", `O [ "docker-login#v1.0.0", `O [ "username", `String "avsm" ] ]
 let concurrency num group =
   [ "concurrency", `String (string_of_int num);
@@ -241,7 +239,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = List.map O.gen_opam2_distro distros in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) arches |> List.flatten in
+    ) OV.arches |> List.flatten in
   let p2 = Hashtbl.create 9 in
   List.iter (fun (f,arch) ->
     match Hashtbl.find p2 f with
@@ -296,7 +294,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = all_compilers @ each_compiler in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) arches |> List.flatten in
+    ) OV.arches |> List.flatten in
   let p3_builds =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
