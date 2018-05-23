@@ -24,16 +24,18 @@ module U = struct
 
   let flambda ="ﬂ "
   let ss = "∬ "
+  let release = "⚐ "
 
-  let amd64 = "Ⓧ "
-  let arm64 = "Ⓐ "
-  let ppc64 = "Ⓟ "
+  let amd64 = "ⓧ "
+  let arm64 = "ⓐ "
+  let ppc64 = "ⓟ "
 end
 
 module A = struct
   open Obi.Index
   let ovs = List.map OV.of_string_exn ["4.03";"4.04";"4.05";"4.06";"4.07";"4.08"] 
   let ov_stable = OV.of_string_exn "4.06"
+  let ov_rc = OV.of_string_exn "4.07"
   let ov_stable_uss = OV.of_string_exn "4.06+default-unsafe-string"
   let ov_stable_fl = OV.of_string_exn "4.06+flambda"
   let base_distro = `Debian `V9
@@ -73,6 +75,9 @@ module A = struct
 
   let test_flambda m =
     test_two_versions ov_stable ov_stable_fl m
+
+  let test_ocaml406to7 m =
+    test_two_versions ov_stable ov_rc m
 
   (* Distros that failed where the Debian version didnt *)
   let find_distro_fails m =
@@ -145,6 +150,8 @@ module S = struct
       Fmt.(pf ppf "%a" (styled `Red string) U.ss);
     if A.test_flambda m = Some false then
       Fmt.(pf ppf "%a" (styled `Red string) U.flambda);
+    if A.test_ocaml406to7 m = Some false then
+      Fmt.(pf ppf "%a" (styled `Red string) U.release);
 end
 
 type copts = {
