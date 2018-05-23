@@ -178,7 +178,7 @@ let render_package_version (version,metadata) =
   S.arches Fmt.stdout metadata;
   Fmt.(pf stdout "  ");
   S.variants Fmt.stdout metadata;
-  Fmt.(pf stdout "@\n")
+  Fmt.(pf stdout "@\n%!")
 
 let render_package_logs version metadata =
   let open Obi.Index in
@@ -197,13 +197,13 @@ let render_package ~all_versions pkg =
   let open Obi.Index in
   match all_versions with
   | true ->
-    printf "%s:\n" pkg.name;
+    printf "%s:\n%!" pkg.name;
     List.iter render_package_version pkg.versions
   | false ->
     let version = A.latest_version pkg in
-    printf "%30s " pkg.name;
+    printf "%30s %!" pkg.name;
     render_package_version version;
-    printf "\n%!"
+    printf "%!"
 
 let render_package_details pkg =
   let open Obi.Index in
