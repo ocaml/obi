@@ -255,7 +255,8 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
-        `String (Fmt.strf "docker push %s" tag)
+        `String (Fmt.strf "docker push %s" tag);
+        `String (Fmt.strf "echo Push finished");
       ] in
       `O ([ "command", cmds;
            "label", `String label; retry ();
