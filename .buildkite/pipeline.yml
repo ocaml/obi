@@ -19,7 +19,7 @@ steps:
     concurrency_group: "opam/build"
     plugins:
       docker#v1.1.1:
-        image: "ocaml/opam2-staging"
+        image: "ocaml/opam2-staging:ubuntu-16.04"
         workdir: /src
         always_pull: true
         environment:
