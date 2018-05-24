@@ -19,7 +19,7 @@ let copts staging_hub_id prod_hub_id results_dir =
   ; results_dir }
 
 
-let arches = [ `Ppc64le ] 
+let arches = OV.arches
 
 type build_t = {ov: Ocaml_version.t; distro: D.t}
 
