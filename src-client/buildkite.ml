@@ -19,6 +19,8 @@ let copts staging_hub_id prod_hub_id results_dir =
   ; results_dir }
 
 
+let arches = [ `Ppc64le ] 
+
 type build_t = {ov: Ocaml_version.t; distro: D.t}
 
 let docs {prod_hub_id;_} =
@@ -239,7 +241,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = List.map O.gen_opam2_distro distros in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) OV.arches |> List.flatten in
+    ) arches |> List.flatten in
   let p2 = Hashtbl.create 9 in
   List.iter (fun (f,arch) ->
     match Hashtbl.find p2 f with
@@ -294,7 +296,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = all_compilers @ each_compiler in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) OV.arches |> List.flatten in
+    ) arches |> List.flatten in
   let p3_builds =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
