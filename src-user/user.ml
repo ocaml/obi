@@ -162,12 +162,11 @@ module S = struct
     ) OV.arches
 
   let variants ppf m =
-    if A.test_safe_string m = Some false then
-      Fmt.(pf ppf "%a" (styled `Red string) U.ss);
-    if A.test_flambda m = Some false then
-      Fmt.(pf ppf "%a" (styled `Red string) U.flambda);
-    if A.test_ocaml406to7 m = Some false then
-      Fmt.(pf ppf "%a" (styled `Red string) U.release);
+    let col = function None -> `Yellow | Some true -> `Green | Some false -> `Red in
+    let run fn u = Fmt.(pf ppf "%a" (styled (col (fn m)) string) u) in
+    run A.test_safe_string U.ss;
+    run A.test_flambda U.flambda;
+    run A.test_ocaml406to7 U.release
 end
 
 type copts = {
