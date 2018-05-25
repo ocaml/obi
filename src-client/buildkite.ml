@@ -433,7 +433,7 @@ let process input_dir output_dir () =
     begin match exit_code with
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
-    let res = { code = `Exited exit_code; start_time; end_time } in
+    let res = { Builds.code = `Exited exit_code; start_time; end_time } in
     pkg_version (Fpath.rem_ext pkg |> Fpath.to_string) >>= fun (name, version) ->
     let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
     let versions = (version, res) :: (List.remove_assoc version versions) in
@@ -442,14 +442,14 @@ let process input_dir output_dir () =
   ) pkgs >>= fun () ->
   let pkgs = Hashtbl.fold (fun name versions acc ->
     let versions = List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) versions in
-    {Obi.name;versions}::acc
+    {Obi.Builds.name;versions}::acc
   ) h [] in
   let ofile = Fpath.(odir / (rev ^ ".sxp")) in
   Logs.info (fun l -> l "arch %s distro %s" (OV.string_of_arch arch) (D.tag_of_distro distro));
-  let params = {Obi.arch;distro;ov} in
-  let batch = { rev; params; pkgs} in
+  let params = {Obi.Builds.arch;distro;ov} in
+  let batch = { Obi.Builds.rev; params; pkgs} in
   Logs.info (fun l -> l "Writing %a" Fpath.pp ofile);
-  OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.sexp_of_batch batch))
+  OS.File.write ofile (Sexplib.Sexp.to_string_hum (Obi.Builds.sexp_of_batch batch))
 
 let gen_summary input_dir opam_dir () =
   Import2.summarise input_dir opam_dir

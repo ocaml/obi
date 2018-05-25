@@ -93,7 +93,7 @@ let find_tags pkg =
       Ok t'
 
 let find_log logs_dir params rev pkg version =
-  let open Obi in
+  let open Obi.Builds in
   let log = Printf.sprintf "%s/linux/%s/%s/%s/%s/%s.%s.txt" (Fpath.to_string logs_dir) (OV.string_of_arch params.arch) (D.tag_of_distro params.distro) (OV.to_string params.ov) rev pkg version in
   Bos.OS.File.read_lines (Fpath.v log) >>= fun lines ->
   (* Grab last lines or error report *)
@@ -125,7 +125,7 @@ let find_latest_results srevs params =
   | Some v -> rev, v
 
 let pkg_metadata_of_batch logs_dir b =
-  let open Obi in
+  let open Obi.Builds in
   let rev = b.rev in
   let params = b.params in
   C.map (fun pkg ->
@@ -140,12 +140,13 @@ let pkg_metadata_of_batch logs_dir b =
       (match res.code with
        |`Exited 0 -> Ok []
        |_ -> find_log logs_dir params rev name version) >>= fun log ->
-           let metadata = [ { Index.params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
+           let params = { Obi.Index.arch=params.arch; ov=params.ov; distro=params.distro } in
+           let metadata = [ { Obi.Index.params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)
     ) pkg.versions >>= fun versions ->
     let maintainers = List.sort_uniq String.compare !ms in
     let tags = List.sort_uniq String.compare !tags in
-    Ok { Index.name; versions; maintainers; tags}
+    Ok { Obi.Index.name; versions; maintainers; tags}
   ) b.pkgs
 
 let merge_pkgs (l:Obi.Index.pkgs list) =
@@ -212,8 +213,8 @@ let summarise input_dir (opam_dir:Fpath.t) =
           C.iter (fun rev ->
             Logs.info (fun l -> l "Found git rev %a" Fpath.pp rev);
             let file = Fpath.(dir // rev |> to_string) in
-            let params = { Obi.arch; distro; ov } in
-            let batch = Sexplib.Sexp.load_sexp_conv_exn file Obi.batch_of_sexp in
+            let params = { Obi.Builds.arch; distro; ov } in
+            let batch = Sexplib.Sexp.load_sexp_conv_exn file Obi.Builds.batch_of_sexp in
             (if Hashtbl.mem revs batch.rev then Ok () else begin
               info_of_rev opam_dir batch.rev >>= fun info ->
                 Hashtbl.replace revs batch.rev info; Ok () end) >>= fun () ->
@@ -230,13 +231,14 @@ let summarise input_dir (opam_dir:Fpath.t) =
     ) srevs;
     Printf.eprintf "\n%!";
     (* figure out all the params available in recent build revisions *)
-    let all_params = Hashtbl.fold (fun k (_,v) a -> if List.mem v.Obi.params a then a else v.Obi.params :: a) h [] in
-    List.iter (fun p -> prerr_endline (ps Obi.sexp_of_params p)) all_params;
+    let open Obi.Builds in
+    let all_params = Hashtbl.fold (fun k (_,v) a -> if List.mem v.params a then a else v.params :: a) h [] in
+    List.iter (fun p -> prerr_endline (ps sexp_of_params p)) all_params;
     (* find the batches with the latest opam revision for that param *)
     let latest = List.map (fun params ->
       Hashtbl.find_all by_param params |>
-      List.sort (fun a b -> Rev.compare (Hashtbl.find revs a.Obi.rev) (Hashtbl.find revs b.Obi.rev)) |>
-      List.find (fun b -> b.Obi.params = params)
+      List.sort (fun a b -> Rev.compare (Hashtbl.find revs a.rev) (Hashtbl.find revs b.rev)) |>
+      List.find (fun b -> b.params = params)
     ) all_params in
     C.map (pkg_metadata_of_batch logs_dir) latest >>= fun latest ->
     let pkgs = merge_pkgs latest in
