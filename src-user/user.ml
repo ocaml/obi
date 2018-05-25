@@ -72,7 +72,8 @@ module A = struct
     m.build_result = `Exited 0
 
   let latest_version pkg =
-    List.sort (fun a b -> Obi.VersionCompare.compare (fst a) (fst b)) pkg.versions |> List.hd
+    List.sort (fun a b ->
+      Obi.VersionCompare.compare (fst b) (fst a)) pkg.versions |> List.hd
 
   let test_two_versions a b m =
     let ss = find ~ov:a m in
