@@ -8,6 +8,15 @@ pkg=$4
 
 docker pull $hub:$tag
 docker run --rm $hub:$tag opam list -s --all-versions --installable $pkg > toinstall.txt
+docker run --rm $hub:$tag opam list -s --all-versions $pkg > allpossible.txt
+comm -23 allpossible.txt toinstall.txt > uninstallable.txt
+
+echo --- Checking uninstallabe
+wc -l uninstallable.txt
+echo Uninstallable packages in this switch are:
+cat uninstallable.txt
+
+echo --- Checking installable
 echo To install:
 cat toinstall.txt
 
@@ -56,6 +65,13 @@ for i in $tobuild; do
   echo --- Building $i
   mkdir -p $tag/results
   docker pull $hub:$tag
+  docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+  buildkite-agent artifact upload $tag/results/$i.txt
+done
+
+echo "--- Recording uninstallable results"
+for i in `cat uninstallable.txt`; do
+  mkdir -p $tag/results
   docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
   buildkite-agent artifact upload $tag/results/$i.txt
 done

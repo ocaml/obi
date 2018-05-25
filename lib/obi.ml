@@ -23,7 +23,7 @@ end
 
 module Builds = struct
   type build_result = {
-    code: [`Signaled of int | `Exited of int];
+    code: [`Signaled of int | `Exited of int | `Uninstallable of string ];
     start_time: float;
     end_time: float;
   } [@@deriving sexp]
@@ -55,7 +55,7 @@ module Index = struct
   type metadata =
     { rev: string;
       params: params;
-      build_result: [`Signaled of int | `Exited of int ];
+      build_result: [`Signaled of int | `Exited of int | `Uninstallable of string ];
       start_time: float;
       end_time: float;
       log: string list;
