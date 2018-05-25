@@ -30,6 +30,8 @@ EOL
 
 if [ "$ARCH" == "arm64" ]; then
   build "debian-9" "4.06" "arm64"
+elif [ "$ARCH" == "ppc64le" ]; then
+  build "debian-9" "4.06" "ppc64le"
 else
   build "debian-9" "4.07" "amd64"
   build "debian-9" "4.06" "amd64"

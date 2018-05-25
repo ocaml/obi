@@ -19,6 +19,8 @@ let copts staging_hub_id prod_hub_id results_dir =
   ; results_dir }
 
 
+let arches = OV.arches
+
 type build_t = {ov: Ocaml_version.t; distro: D.t}
 
 let docs {prod_hub_id;_} =
@@ -239,7 +241,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = List.map O.gen_opam2_distro distros in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) OV.arches |> List.flatten in
+    ) arches |> List.flatten in
   let p2 = Hashtbl.create 9 in
   List.iter (fun (f,arch) ->
     match Hashtbl.find p2 f with
@@ -253,7 +255,8 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
-        `String (Fmt.strf "docker push %s" tag)
+        `String (Fmt.strf "docker push %s" tag);
+        `String (Fmt.strf "echo Push finished");
       ] in
       `O ([ "command", cmds;
            "label", `String label; retry ();
@@ -294,7 +297,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let dfiles = all_compilers @ each_compiler in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
-    ) OV.arches |> List.flatten in
+    ) arches |> List.flatten in
   let p3_builds =
     List.map (fun (f,arch) ->
       let arch = OV.string_of_arch arch in
@@ -303,7 +306,8 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase3-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
-        `String (Fmt.strf "docker push %s" tag)
+        `String (Fmt.strf "docker push %s" tag);
+        `String (Fmt.strf "echo Push finished");
       ] in
       `O ([ "command", cmds; "label", `String label; retry (); docker_agents arch; docker_login ])
       ) p3
@@ -333,7 +337,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
     List.fold_left (fun acc ldistro ->
       let distro = D.resolve_alias ldistro in
       let f = Fmt.strf "%s" (D.tag_of_distro distro) in
-      let arches = Hashtbl.find p4 f in
+      let arches = try Hashtbl.find p4 f with Not_found -> [] in
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
@@ -355,7 +359,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let ov = OV.with_patch ov None in
       let distro = D.resolve_alias (`Debian `Stable) in
       let f = Fmt.strf "%s-ocaml-%s" (D.tag_of_distro distro) (OV.to_string ov) in
-      let arches = Hashtbl.find p4 f in
+      let arches = try Hashtbl.find p4 f with Not_found -> [] in
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
@@ -457,7 +461,7 @@ let fpath = Arg.conv ~docv:"PATH" (Fpath.of_string, Fpath.pp)
 
 let arch =
   let doc = "CPU architecture to perform build on" in
-  let term = Arg.enum [("amd64", `X86_64); ("arm64", `Aarch64)] in
+  let term = Arg.enum [("amd64", `X86_64); ("arm64", `Aarch64); ("ppc64le", `Ppc64le) ] in
   Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
 
 let opam_repo_rev =
