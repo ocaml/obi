@@ -64,7 +64,6 @@ module A = struct
  (* Latest stable *)
   let stable ms =
     List.filter (fun m ->
-      (* TODO need to refresh this without a dependency on dockerfile-distro *)
       m.params.distro = base_distro
     ) ms
 
@@ -185,75 +184,80 @@ let check_maintainer ~maintainers pkg =
     List.exists (fun p ->
       String.find_sub ~sub p <> None) l) maintainers
 
-let render_package_version (version,metadata) =
-  Fmt.(pf stdout "%10s " version);
+let render_package_version ppf (version,metadata) =
+  Fmt.(pf ppf "%10s " version);
   S.compilers Fmt.stdout metadata;
-  Fmt.(pf stdout "  ");
+  Fmt.(pf ppf "  ");
   S.distros Fmt.stdout metadata;
-  Fmt.(pf stdout "  ");
+  Fmt.(pf ppf "  ");
   S.arches Fmt.stdout metadata;
-  Fmt.(pf stdout "  ");
+  Fmt.(pf ppf "  ");
   S.variants Fmt.stdout metadata;
-  Fmt.(pf stdout "@\n%!")
+  Fmt.(pf ppf "@\n%!")
 
-let render_package_logs version metadata =
+let render_package_logs ppf version metadata =
   let open Obi.Index in
   let p = metadata.params in
   match metadata.log with
   | [] -> ()
   | logs ->
-    Fmt.(pf stdout "@\n%a %a %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
+    Fmt.(pf ppf "@\n%a %a %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
      (OV.to_string p.ov) (D.human_readable_string_of_distro p.distro) (OV.string_of_arch p.arch) );
   let w = Wrapper.make ~initial_indent:" " ~subsequent_indent:" " ~drop_whitespace:true 100 in
   List.iter (fun l ->
     List.iter print_endline (Wrapper.wrap w l)
   ) metadata.log
 
-let render_package ~all_versions pkg =
+let render_package ppf ~all_versions pkg =
   let open Obi.Index in
   match all_versions with
   | true ->
     printf "%s:\n%!" pkg.name;
-    List.iter render_package_version pkg.versions
+    List.iter (render_package_version ppf) pkg.versions
   | false ->
     let version = A.latest_version pkg in
     printf "%30s %!" pkg.name;
-    render_package_version version;
+    render_package_version ppf version;
     printf "%!"
 
-let render_package_details pkg =
+let render_package_details ppf pkg =
   let open Obi.Index in
-  Fmt.(pf stdout "%a:@\n" (styled `Bold string) pkg.name);
+  Fmt.(pf ppf "%a:@\n" (styled `Bold string) pkg.name);
   List.iter (fun (version, metadata) ->
-    render_package_version (version, metadata);
-    List.iter (render_package_logs version) metadata;
-    Fmt.(pf stdout "@\n");
+    render_package_version ppf (version, metadata);
+    List.iter (render_package_logs ppf version) metadata;
+    Fmt.(pf ppf "@\n");
   ) pkg.versions
 
 let show_status {maintainers; all_versions} () =
+  let ppf = Fmt.stdout in
   let open Obi.Index in
   Repos.init () >>= fun pkgs ->
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
     if check_maintainer ~maintainers pkg then
-      render_package ~all_versions pkg
+      render_package ppf ~all_versions pkg
   ) pkgs;
   Ok ()
 
 let show_logs pkg () =
   let open Obi.Index in
   (* TODO split on version *)
+  let ppf = Fmt.stdout in
   Repos.init () >>= fun pkgs ->
   match List.find_opt (fun p -> p.name = pkg) pkgs with
   | None -> Error (`Msg "Package not found")
   | Some pkg ->
-     render_package_details pkg;
+     render_package_details ppf pkg;
      Ok ()
 
 open Cmdliner
 let setup_logs =
   let setup_log style_renderer level =
-    Fmt_tty.setup_std_outputs ?style_renderer ();
+    let style_renderer = match style_renderer with
+      | None -> `Ansi_tty
+      | Some t -> t in
+    Fmt_tty.setup_std_outputs ~style_renderer ();
     Logs.set_level level;
     Logs.set_reporter (Logs_fmt.reporter ()) in
   let global_option_section = "COMMON OPTIONS" in
