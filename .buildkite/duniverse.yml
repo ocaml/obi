@@ -5,7 +5,7 @@ steps:
       - opam install -y jbuilder
       - sudo apt-get -y install jq
       - git clone git://github.com/dra27/opam-compose /home/opam/prep/opam-compose
-      - cd /home/opam/prep && ./opam-compose/prepare lwt
+      - cd /home/opam/prep && bash -x ./opam-compose/prepare lwt
       - cd /home/opam/prep && jbuilder build
     agents:
       docker: "true"
