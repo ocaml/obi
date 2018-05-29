@@ -134,12 +134,14 @@ module S = struct
     | `Aarch64 -> arm64
     | `Ppc64le -> ppc64
 
+  let is_uninstallable = function `Uninstallable _ -> true | _ -> false
   let compilers ppf (m:metadata list) =
     List.iter (fun ov ->
       let u = u_of_ov (OV.to_string ov) in
       match A.find ~ov m with
       | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
       | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
+      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
       | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
     ) A.ovs 
 
@@ -149,6 +151,7 @@ module S = struct
       match A.find ~distro m with
       | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
       | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
+      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
       | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
     ) A.distros
 
@@ -158,6 +161,7 @@ module S = struct
       match A.find ~arch m with
       | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
       | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
+      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
       | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
     ) OV.arches
 

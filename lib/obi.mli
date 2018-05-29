@@ -17,6 +17,7 @@
 module Index : sig
   type maintainers = (string * string) list [@@deriving sexp]
   type tags = (string * string list) list [@@deriving sexp]
+  type result =  [`Signaled of int | `Exited of int | `Uninstallable of string list ] [@@deriving sexp]
   type params = {
     arch: Dockerfile_distro.arch;
     distro : Dockerfile_distro.t;
@@ -25,7 +26,7 @@ module Index : sig
   type metadata =
     { rev: string;
       params: params;
-      build_result: [`Signaled of int | `Exited of int | `Uninstallable of string ];
+      build_result: result;
       start_time: float;
       end_time: float;
       log: string list;
@@ -41,7 +42,7 @@ end
 
 module Builds : sig
   type build_result = {
-    code: [`Signaled of int | `Exited of int | `Uninstallable of string ];
+    code: [`Signaled of int | `Exited of int ];
     start_time: float;
     end_time: float;
   } [@@deriving sexp]

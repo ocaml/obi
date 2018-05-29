@@ -155,9 +155,14 @@ let pkg_metadata_of_batch logs_dir b =
       List.iter (fun t -> tags := t :: !tags) ts;
       (match res.code with
        |`Exited 0 -> Ok []
-       |_ -> find_log logs_dir params rev name version) >>= fun log ->
+       |_ ->
+           find_log logs_dir params rev name version) >>= fun log ->
+           let build_result =
+             match res.code with
+             | `Exited 20 -> `Uninstallable log
+             | n -> (n :> Obi.Index.result) in
            let params = { Obi.Index.arch=params.arch; ov=params.ov; distro=params.distro } in
-           let metadata = [ { Obi.Index.params; rev; build_result=res.code; start_time=res.start_time; end_time=res.end_time; log } ] in
+           let metadata = [ { Obi.Index.params; rev; build_result; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)
     ) pkg.versions >>= fun versions ->
     let maintainers = List.sort_uniq String.compare !ms in
