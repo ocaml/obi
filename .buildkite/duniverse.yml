@@ -1,17 +1,17 @@
 steps:
   - label: 'Clone Duniverse'
     command:
-      - 'rm -rf prep && cd prep'
+      - 'rm -rf prep && mkdir -p prep && cd prep'
       - 'git clone git://github.com/dra27/opam-compose'
       - './opam-compose/prepare lwt'
       - 'opam install -y jbuilder'
-      - 'jbuilder build'
+      - 'opam config exec -- jbuilder build'
     agents:
       docker: "true"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
-        workdir: /src
+        workdir: /home/opam
         always_pull: true
         environment:
           - OPAMYES=1
