@@ -1,6 +1,7 @@
 steps:
   - label: 'Clone Duniverse'
     command:
+      - 'cat /etc/os-release'
       - 'rm -rf prep && mkdir -p prep && cd prep'
       - 'ls -la ~'
       - 'opam install -y jbuilder'
