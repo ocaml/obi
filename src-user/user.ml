@@ -186,13 +186,13 @@ let check_maintainer ~maintainers pkg =
 
 let render_package_version ppf (version,metadata) =
   Fmt.(pf ppf "%10s " version);
-  S.compilers Fmt.stdout metadata;
+  S.compilers ppf metadata;
   Fmt.(pf ppf "  ");
-  S.distros Fmt.stdout metadata;
+  S.distros ppf metadata;
   Fmt.(pf ppf "  ");
-  S.arches Fmt.stdout metadata;
+  S.arches ppf metadata;
   Fmt.(pf ppf "  ");
-  S.variants Fmt.stdout metadata;
+  S.variants ppf metadata;
   Fmt.(pf ppf "@\n%!")
 
 let render_package_logs ppf version metadata =
@@ -212,13 +212,12 @@ let render_package ppf ~all_versions pkg =
   let open Obi.Index in
   match all_versions with
   | true ->
-    printf "%s:\n%!" pkg.name;
+    Fmt.pf ppf "%s:\n%!" pkg.name;
     List.iter (render_package_version ppf) pkg.versions
   | false ->
     let version = A.latest_version pkg in
-    printf "%30s %!" pkg.name;
-    render_package_version ppf version;
-    printf "%!"
+    Fmt.pf ppf "%30s %!" pkg.name;
+    render_package_version ppf version
 
 let render_package_details ppf pkg =
   let open Obi.Index in
@@ -230,9 +229,9 @@ let render_package_details ppf pkg =
   ) pkg.versions
 
 let show_status {maintainers; all_versions} () =
-  let ppf = Fmt.stdout in
   let open Obi.Index in
   Repos.init () >>= fun pkgs ->
+  let ppf = Fmt.stdout in
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
     if check_maintainer ~maintainers pkg then

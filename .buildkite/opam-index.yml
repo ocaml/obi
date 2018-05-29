@@ -19,6 +19,7 @@ steps:
       - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp && buildkite-agent artifact upload tags.sxp'
     agents:
       docker: "true"
+      arch: "amd64"
     plugins:
       docker#v1.1.1:
         image: "ocaml/opam2-staging"
