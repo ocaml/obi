@@ -17,6 +17,7 @@ endtime=`date +%s`
 if [ $exitcode -ne 0 ]; then
   echo '{}' >> $1.txt
   echo 51 $starttime $endtime >> $1.txt
+  cat $1.txt
   exit 0
 fi
 
