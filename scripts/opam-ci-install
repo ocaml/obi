@@ -8,7 +8,6 @@ cmd() {
 export OPAMERRLOGLEN=0
 export OPAMYES=1
 
-echo --- Installing external dependencies
 starttime=`date +%s`
 cmd opam depext -y $1 > $1.txt 2>&1
 exitcode=$?
@@ -21,11 +20,11 @@ if [ $exitcode -ne 0 ]; then
   exit 0
 fi
 
-echo --- Installing opam package
 cmd opam install --json $1.json -y -j 2 >> $1.txt 2>&1
 exitcode=$?
 endtime=`date +%s`
 cat $1.json >> $1.txt
+echo >> $1.txt
 echo $exitcode $starttime $endtime >> $1.txt
 cat $1.txt
 exit 0
