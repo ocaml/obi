@@ -17,8 +17,8 @@ endtime=`date +%s`
 # as a special case, raise exit 51 for a depext failure
 if [ $exitcode -ne 0 ]; then
   echo '{}' >> $1.txt
-  echo $exitcode $starttime $endtime >> $1.txt
-  exit 51
+  echo 51 $starttime $endtime >> $1.txt
+  exit 0
 fi
 
 echo --- Installing opam package
