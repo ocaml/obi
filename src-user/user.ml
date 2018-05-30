@@ -29,8 +29,8 @@ module U = struct
   let c7 = "⑦ "
   let c8 = "⑧ "
 
-  let tick = "✓"
-  let cross = "✘"
+  let tick = "✓ "
+  let cross = "✘ "
 
   let debian = "🄳 "
   let fedora = "🄵 "
@@ -67,6 +67,16 @@ module A = struct
       m.params.distro = base_distro
     ) ms
 
+  type res = [ `Ok | `Fail | `Uninstallable | `Unknown ]
+
+  let classify m =
+    match m with 
+    | None -> `Unknown
+    | Some {build_result=`Exited 0} -> `Ok
+    | Some {build_result=`Exited _} -> `Fail
+    | Some {build_result=`Signaled _} -> `Fail
+    | Some {build_result=`Uninstallable _} -> `Uninstallable
+
   let is_success m =
     m.build_result = `Exited 0
 
@@ -76,15 +86,15 @@ module A = struct
 
   let test_two_versions a b m =
     let ss = find ~ov:a m in
+    let ss' = classify ss in
     let uss = find ~ov:b m in
-    match ss, uss with
-    |Some ss, Some uss -> begin
-      match (is_success ss), is_success uss with
-      | false, true -> Some false
-      | true, false -> Some false
-      | _ -> Some true
-    end
-    |_ -> None
+    let uss' = classify uss in
+    match ss', uss' with
+    |`Fail, `Ok | `Ok, `Fail -> `Fail
+    |`Ok, `Ok -> `Ok
+    |`Fail, `Fail -> `Fail
+    |`Uninstallable,_ | _,`Uninstallable -> `Uninstallable
+    |`Unknown,_ | _,`Unknown -> `Unknown
 
   let test_safe_string m =
     test_two_versions ov_stable ov_stable_uss m
@@ -134,39 +144,33 @@ module S = struct
     | `Aarch64 -> arm64
     | `Ppc64le -> ppc64
 
-  let is_uninstallable = function `Uninstallable _ -> true | _ -> false
+  let render_classify ppf fn m u =
+    match fn m |> A.classify with
+    | `Unknown -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
+    | `Ok -> Fmt.(pf ppf "%a" (styled `Green string) u)
+    | `Uninstallable -> Fmt.(pf ppf "%a" string u)
+    | `Fail -> Fmt.(pf ppf "%a" (styled `Red (styled `Bold string)) u)
+ 
   let compilers ppf (m:metadata list) =
     List.iter (fun ov ->
-      let u = u_of_ov (OV.to_string ov) in
-      match A.find ~ov m with
-      | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
-      | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
-      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
-      | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
+      u_of_ov (OV.to_string ov) |>
+      render_classify ppf (A.find ~ov) m
     ) A.ovs 
 
   let distros ppf m =
     List.iter (fun distro ->
-      let u = u_of_distro distro in
-      match A.find ~distro m with
-      | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
-      | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
-      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
-      | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
+      u_of_distro distro |>
+      render_classify ppf (A.find ~distro) m
     ) A.distros
 
   let arches ppf m =
     List.iter (fun arch ->
-      let u = u_of_arch arch in
-      match A.find ~arch m with
-      | None -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
-      | Some m when m.build_result = `Exited 0 -> Fmt.(pf ppf "%a" (styled `Green string) u)
-      | Some m when is_uninstallable m.build_result -> Fmt.(pf ppf "%a" (styled `Blue string) u)
-      | Some m -> Fmt.(pf ppf "%a" (styled `Red string) u)
+      u_of_arch arch |>
+      render_classify ppf (A.find ~arch) m
     ) OV.arches
 
   let variants ppf m =
-    let col = function None -> `Yellow | Some true -> `Green | Some false -> `Red in
+    let col = function `Uninstallable -> `White | `Unknown -> `Yellow | `Ok -> `Green | `Fail -> `Red in
     let run fn u = Fmt.(pf ppf "%a" (styled (col (fn m)) string) u) in
     run A.test_safe_string U.ss;
     run A.test_flambda U.flambda;
