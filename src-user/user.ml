@@ -193,7 +193,7 @@ let check_maintainer ~maintainers pkg =
       String.find_sub ~sub p <> None) l) maintainers
 
 let render_package_version ppf (version,metadata) =
-  Fmt.(pf ppf "%10s " version);
+  Fmt.(pf ppf "%14s  " version);
   S.compilers ppf metadata;
   Fmt.(pf ppf "  ");
   S.distros ppf metadata;

@@ -20,7 +20,7 @@ if [ $exitcode -ne 0 ]; then
   exit 0
 fi
 
-cmd opam install --json $1.json -y -j 2 >> $1.txt 2>&1
+cmd opam install --json $1.json -y -j 2 $1 >> $1.txt 2>&1
 exitcode=$?
 endtime=`date +%s`
 cat $1.json >> $1.txt
