@@ -23,7 +23,7 @@ cat toinstall.txt
 numlines=`wc -l < toinstall.txt`
 
 # workaround: bap takes forever to build in serial
-if [[ $3 == bap-* ]]; then
+if [[ $pkg == bap-* ]]; then
   echo --- Special case for bap
   tospawn=`tail -n +2 toinstall.txt`
   tobuild=`head -1 toinstall.txt`
