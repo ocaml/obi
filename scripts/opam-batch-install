@@ -11,7 +11,7 @@ docker run --rm $hub:$tag opam list -s --all-versions --installable $pkg | sort 
 docker run --rm $hub:$tag opam list -s --all-versions $pkg | sort > allpossible.txt
 comm -23 allpossible.txt toinstall.txt > uninstallable.txt
 
-echo --- Checking uninstallabe
+echo --- Checking uninstallable
 wc -l uninstallable.txt
 echo Uninstallable packages in this switch are:
 cat uninstallable.txt
@@ -52,8 +52,12 @@ if [ ! -z "$tospawn" ]; then
   command:
   - mkdir -p $tag/results
   - docker pull $hub:$tag
-  - docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+  - rm -rf output && mkdir -p output
+  - docker run --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  - cp output/$i.txt $tag/results/$i.txt
+  - cp output/$i.json $tag/results/$i.json
   - buildkite-agent artifact upload $tag/results/$i.txt
+  - buildkite-agent artifact upload $tag/results/$i.json
 EOL
   done
   cat tobuild.yml
@@ -65,13 +69,22 @@ for i in $tobuild; do
   echo --- Building $i
   mkdir -p $tag/results
   docker pull $hub:$tag
-  docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+  rm -rf output && mkdir -p output
+  docker run --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  cp output/$i.txt $tag/results/$i.txt
+  cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt
+  buildkite-agent artifact upload $tag/results/$i.json
 done
 
 echo "--- Recording uninstallable results"
 for i in `cat uninstallable.txt`; do
+  echo --- Building $i
   mkdir -p $tag/results
-  docker run --rm -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i > $tag/results/$i.txt
+  rm -rf output && mkdir -p output
+  docker run --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  cp output/$i.txt $tag/results/$i.txt
+  cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt
+  buildkite-agent artifact upload $tag/results/$i.json
 done
