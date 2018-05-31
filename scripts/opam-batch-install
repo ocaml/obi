@@ -9,6 +9,12 @@ pkg=$4
 docker pull $hub:$tag
 docker run --rm $hub:$tag opam list -s --all-versions --installable $pkg | sort > toinstall.txt
 docker run --rm $hub:$tag opam list -s --all-versions $pkg | sort > allpossible.txt
+ls -la *.txt
+echo toinstall:
+cat toinstall.txt
+echo allpossible:
+cat allpossible.txt
+echo diffing:
 comm -23 allpossible.txt toinstall.txt > uninstallable.txt
 
 echo --- Checking uninstallable
