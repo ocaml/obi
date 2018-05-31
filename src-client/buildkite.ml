@@ -444,8 +444,14 @@ let process input_dir output_dir () =
   C.iter (fun pkg ->
     Logs.info (fun l -> l "Reading %a" Fpath.pp pkg);
     OS.File.read_lines Fpath.(logs // pkg) >>= fun lines ->
-    let metainfo = List.rev lines |> List.hd in
-    let exit_code, start_time, end_time = Scanf.sscanf metainfo "%d %f %f" (fun a b c -> a,b,c) in
+    let exit_code, start_time, end_time =
+      try
+        let metainfo = List.rev lines |> List.hd in
+        Scanf.sscanf metainfo "%d %f %f" (fun a b c -> a,b,c) 
+      with exn ->
+        Logs.info (fun l -> l "ERROR assuming default (%a %d %s)" Fpath.pp pkg (List.length lines) (Printexc.to_string exn));
+        98, 0., 0.
+    in
     begin match exit_code with
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
