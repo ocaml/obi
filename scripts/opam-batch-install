@@ -59,7 +59,7 @@ if [ ! -z "$tospawn" ]; then
   - mkdir -p $tag/results
   - docker pull $hub:$tag
   - rm -rf output && mkdir -p output
-  - docker run --rm -v $$BUILDKITE_BUILD_CHECKOUT_PATH/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  - docker run --rm -v \$BUILDKITE_BUILD_CHECKOUT_PATH/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
   - cp output/$i.txt $tag/results/$i.txt
   - cp output/$i.json $tag/results/$i.json
   - buildkite-agent artifact upload $tag/results/$i.txt
