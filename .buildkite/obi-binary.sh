@@ -6,9 +6,10 @@ tag=${2:-obi-buildkite}
 dockerfile_for_arch() {
   arch=$1
   DFILE="FROM ocaml/opam2-staging
-RUN sudo apt update && sudo apt install -y m4 pkg-config
+RUN sudo apt-get update && sudo apt-get -y install m4 pkg-config
 RUN opam switch 4.06
-RUN rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src
+COPY . /home/opam/src/
+RUN sudo chown -R opam /home/opam/src
 RUN opam pin add -n --dev dockerfile-opam
 RUN opam pin add -n --dev ocaml-version
 RUN opam install --deps-only /home/opam/src
