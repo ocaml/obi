@@ -13,6 +13,7 @@ COPY . /home/opam/src/
 RUN sudo chown -R opam /home/opam/src
 RUN opam pin add -n --dev dockerfile-opam
 RUN opam pin add -n --dev ocaml-version
+RUN opam pin add -n --dev yaml
 RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build
 FROM ocaml/opam2-staging
