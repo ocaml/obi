@@ -52,4 +52,6 @@ done
 echo "- wait"
 cat <<EOL
 - label: "multiarch push"
+  command:
+  - echo Done
 EOL
