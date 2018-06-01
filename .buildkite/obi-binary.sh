@@ -28,7 +28,7 @@ build_one_arch() {
 - label: "$arch"
   command:
 EOL
-  dockerfile_for_arch $arch
+  # dockerfile_for_arch $arch
   cat <<EOL
   - cat Dockerfile
   - docker build --no-cache --pull -t $hub:$tag-$arch . && docker push $hub:$tag-$arch 
