@@ -52,7 +52,20 @@ for arch in $arches; do
 done
 echo "- wait"
 cat <<EOL
-- label: "multiarch push"
+- label: "Multiarch"
   command:
-  - echo Done
 EOL
+for arch in $arches; do
+  echo "  - docker pull $hub:$tag-$arch"
+done
+echo "  - docker manifest push -p $hub:$tag || true"
+echo -n "  - docker manifest create $hub:$tag "
+for arch in $arches; do
+  echo -n "$hub:$tag-$arch "
+done
+echo 
+for arch in $arches; do
+  echo "  - docker manifest annotate $hub:$tag $hub:$tag-$arch --arch $arch"
+done
+echo "  - docker manifest inspect $hub:$tag"
+echo "  - docker manifest push -p $hub:$tag"
