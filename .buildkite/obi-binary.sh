@@ -16,7 +16,7 @@ RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build
 FROM ocaml/opam2-staging
 COPY --from=0 /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
-RUN chmod a+x /usr/bin/obi-buildkite
+RUN sudo chmod a+x /usr/bin/obi-buildkite
 "
   echo -n "  - \"echo "
   printf '%q' "$DFILE" | sed -e 's/^\$/$$/g'
