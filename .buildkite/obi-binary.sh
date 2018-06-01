@@ -18,7 +18,7 @@ COPY --from=0 /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/o
 RUN chmod a+x /usr/bin/obi-buildkite
 "
   echo -n "  - \"echo "
-  printf '%q' "$DFILE"
+  printf '%q' "$DFILE" | sed -e 's/^\$/$$/g'
   echo "> Dockerfile\""
 }
 
