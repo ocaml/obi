@@ -53,6 +53,11 @@ done
 echo "- wait"
 cat <<EOL
 - label: "Multiarch"
+  agents:
+    docker: "true"
+    os: "linux"
+    pusher: "true"
+    arch: "amd64"
   command:
 EOL
 for arch in $arches; do
