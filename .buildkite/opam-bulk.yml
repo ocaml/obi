@@ -1,32 +1,20 @@
 steps:
   - label: 'Opam Repo Rev'
     command:
-      - 'opam switch 4.06'
-      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
-      - 'cd /home/opam/src/scripts && buildkite-agent artifact upload opam-ci-install'
-      - 'sudo apt update && sudo apt install -y m4 pkg-config'
-      - 'opam pin add -n --dev dockerfile-opam'
-      - 'opam pin add -n --dev ocaml-version'
-      - 'opam pin add -n --dev yaml'
-      - 'opam install --deps-only /home/opam/src'
-      - 'cd /home/opam/src && opam exec -- jbuilder build'
-      - 'cd /home/opam/src/_build/install/default/bin && buildkite-agent artifact upload obi-buildkite'
-      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite bulk --arch=$ARCH --opam-repo-rev=$OPAM_REPO_REV -vv'
-      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "bulk-*/*"'
-      - 'cat /home/opam/src/_results/bulk.yml | buildkite-agent pipeline upload'
+      - 'cd /src/scripts && buildkite-agent artifact upload opam-ci-install'
+      - 'cd /root && obi-buildkite bulk --arch=$ARCH --opam-repo-rev=$OPAM_REPO_REV -vv'
+      - 'cd /root/_results && buildkite-agent artifact upload "bulk-*/*"'
+      - 'cat /root/_results/bulk.yml | buildkite-agent pipeline upload'
     agents:
       docker: "true"
+      os: "linux"
       pusher: "true"
-      arch: "amd64"
     plugins:
       docker#v1.1.1:
-        image: "ocaml/opam2-staging"
+        image: "ocaml/opam2-staging:obi-buildkite"
         workdir: /src
         always_pull: true
         environment:
-          - OPAMYES=1
-          - OPAMJOBS=12
-          - OPAMVERBOSE=0
           - DISTRO=${DISTRO?}
           - OCAML_VERSION=${OCAML_VERSION?}
           - OPAM_REPO_REV=${OPAM_REPO_REV?}

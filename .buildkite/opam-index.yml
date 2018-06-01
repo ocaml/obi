@@ -1,33 +1,20 @@
 steps:
   - label: 'Build Index'
     command:
-      - 'opam switch 4.06'
-      - 'cd /home/opam/opam-repository && git pull origin master && opam update'
-      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
-      - 'sudo apt update && sudo apt install -y m4 pkg-config'
-      - 'opam pin add -n --dev dockerfile-opam'
-      - 'opam pin add -n --dev ocaml-version'
-      - 'opam pin add -n --dev yaml'
-      - 'opam install --deps-only /home/opam/src'
-      - 'cd /home/opam/src && opam exec -- jbuilder build'
       - 'rm -rf opam-repository'
       - 'git clone git://github.com/ocaml/opam-repository'
       - 'rm -rf obi-logs'
       - 'git clone -b builds --depth=1 git://github.com/avsm/obi-logs'
-      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
+      - 'obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
       - 'buildkite-agent artifact upload index.sxp'
       - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp && buildkite-agent artifact upload tags.sxp'
     agents:
       docker: "true"
-      arch: "amd64"
+      os: "linux"
     plugins:
       docker#v1.1.1:
-        image: "ocaml/opam2-staging"
-        workdir: /src
+        image: "ocaml/opam2-staging:obi-buildkite"
         always_pull: true
-        environment:
-          - OPAMYES=1
-          - OPAMJOBS=12
   - wait
   - label: 'Push Index'
     command:
