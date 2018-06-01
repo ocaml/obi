@@ -2,6 +2,7 @@
 
 hub=${1:-ocaml/opam2-staging}
 tag=${2:-obi-buildkite}
+arches="amd64 arm64 ppc64le"
 
 dockerfile_for_arch() {
   arch=$1
@@ -43,8 +44,6 @@ EOL
       username: avsm
 EOL
 }
-
-arches="amd64 arm64"
 
 echo steps:
 for arch in $arches; do
