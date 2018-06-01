@@ -17,9 +17,9 @@ FROM ocaml/opam2-staging
 COPY --from=0 /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
 RUN chmod a+x /usr/bin/obi-buildkite
 "
-  echo -n "  - echo "
+  echo -n "  - \"echo "
   printf '%q' "$DFILE"
-  echo "> Dockerfile"
+  echo "> Dockerfile\""
 }
 
 build_one_arch() {
@@ -28,7 +28,7 @@ build_one_arch() {
 - label: "$arch"
   command:
 EOL
-  # dockerfile_for_arch $arch
+  dockerfile_for_arch $arch
   cat <<EOL
   - cat Dockerfile
   - docker build --no-cache --pull -t $hub:$tag-$arch . && docker push $hub:$tag-$arch 
