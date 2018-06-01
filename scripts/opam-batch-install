@@ -64,6 +64,7 @@ if [ ! -z "$tospawn" ]; then
   - cp output/$i.json $tag/results/$i.json
   - buildkite-agent artifact upload $tag/results/$i.txt
   - buildkite-agent artifact upload $tag/results/$i.json
+  - sudo rm -rf output
 EOL
   done
   cat tobuild.yml
