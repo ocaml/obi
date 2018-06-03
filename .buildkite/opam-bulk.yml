@@ -1,10 +1,9 @@
 steps:
   - label: 'Opam Repo Rev'
     command:
-      - 'cd /src/scripts && buildkite-agent artifact upload opam-ci-install'
-      - 'cd /root && obi-buildkite bulk --arch=$ARCH --opam-repo-rev=$OPAM_REPO_REV -vv'
-      - 'cd /root/_results && buildkite-agent artifact upload "bulk-*/*"'
-      - 'cat /root/_results/bulk.yml | buildkite-agent pipeline upload'
+      - 'cd /home/opam && obi-buildkite bulk --arch=$ARCH --opam-repo-rev=$OPAM_REPO_REV -vv'
+      - 'cd /home/opam/_results && buildkite-agent artifact upload "bulk-*/*"'
+      - 'cat /home/opam/_results/bulk.yml | buildkite-agent pipeline upload'
     agents:
       docker: "true"
       os: "linux"

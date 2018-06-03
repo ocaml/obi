@@ -205,7 +205,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   let dfiles = 
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
-    copy ~src:["opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
+    copy ~src:["scripts/opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
     run "sudo chmod a+x /usr/bin/opam-ci-install"
   in
   let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov |> String.map (function '+' -> '-' | x -> x)) (OV.string_of_arch arch) opam_repo_rev in
@@ -221,7 +221,6 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   let cmds =
     `A [
       `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
-      `String (Fmt.strf "buildkite-agent artifact download 'opam-ci-install' .");
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
       `String (Fmt.strf "docker run %s:%s opam list -a -s | sort -R | head -50 > %s/pkgs.txt" staging_hub_id tag tag);
