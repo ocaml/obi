@@ -16,10 +16,9 @@ RUN opam pin add -n --dev ocaml-version
 RUN opam pin add -n --dev yaml
 RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build
-FROM debian:9
-RUN apt-get update && sudo apt-get -y install ca-certificates
-COPY --from=0 /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
+COPY /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
 RUN chmod a+x /usr/bin/obi-buildkite
+RUN rm -rf /home/opam/.opam /home/opam/src
 "
   echo -n "  - \"echo "
   printf '%q' "$DFILE" | sed -e 's/^\$/$$/g'
