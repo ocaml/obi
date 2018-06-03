@@ -16,8 +16,8 @@ RUN opam pin add -n --dev ocaml-version
 RUN opam pin add -n --dev yaml
 RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build
-COPY /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
-RUN chmod a+x /usr/bin/obi-buildkite
+RUN sudo cp /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
+RUN sudo chmod a+x /usr/bin/obi-buildkite
 RUN rm -rf /home/opam/.opam /home/opam/src
 "
   echo -n "  - \"echo "

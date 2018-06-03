@@ -168,6 +168,13 @@ The OCaml toplevel, version 4.07.0+dev6-2018-04-10
 
 There are a large number of distribution and OCaml version combinations that are regularly built.  For the advanced user who needs a specific combination, the full current list can be found on the [Docker Hub](http://hub.docker.com/r/ocaml/opam2).  However, please try to use the shorter aliases rather than these explicit versions if you can, since then your builds will not error as the upstream versions advance.
 
+Package Sandboxing
+==================
+
+The Docker containers install opam2's Bubblewrap tool that is used for sandboxing builds.  However, due to the way that Linux sandboxing works, this may not work with all Docker installations since unprivileged containers cannot create new Linux namespaces on some installations.  Thus, sandboxing is disabled by default in the containers that have opam initialised.
+
+If you can run containers with `docker run --privileged`, then you can enable opam sandboxing within the container by running `opam-sandbox-enable` within the container.  This will ensure that every package is restricted to only writing within `~/.opam` and is the recommended way of doing testing.
+
 Questions and Feedback
 ======================
 
