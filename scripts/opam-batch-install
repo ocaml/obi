@@ -59,7 +59,7 @@ if [ ! -z "$tospawn" ]; then
   - mkdir -p $tag/results
   - docker pull $hub:$tag
   - rm -rf output && mkdir -p output
-  - docker run --rm -v \`pwd\`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  - docker run --privileged --rm -v \`pwd\`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
   - cp output/$i.txt $tag/results/$i.txt
   - cp output/$i.json $tag/results/$i.json
   - buildkite-agent artifact upload $tag/results/$i.txt
@@ -77,7 +77,7 @@ for i in $tobuild; do
   mkdir -p $tag/results
   docker pull $hub:$tag
   rm -rf output && mkdir -p output
-  docker run --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  docker run --privileged --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
   cp output/$i.txt $tag/results/$i.txt
   cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt
@@ -89,7 +89,7 @@ for i in `cat uninstallable.txt`; do
   echo --- Building $i
   mkdir -p $tag/results
   rm -rf output && mkdir -p output
-  docker run --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
+  docker run --privileged --rm -v `pwd`/output:/mnt -v opam2-archive:/home/opam/.opam/download-cache $hub:$tag opam-ci-install $i
   cp output/$i.txt $tag/results/$i.txt
   cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt

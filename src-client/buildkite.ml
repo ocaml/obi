@@ -206,7 +206,8 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
     copy ~src:["scripts/opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
-    run "sudo chmod a+x /usr/bin/opam-ci-install"
+    run "sudo chmod a+x /usr/bin/opam-ci-install" @@
+    run "opam-sandbox-enable"
   in
   let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov |> String.map (function '+' -> '-' | x -> x)) (OV.string_of_arch arch) opam_repo_rev in
   let label = Fmt.strf "Bulk %s %s %s: %s" (D.tag_of_distro distro) (OV.to_string ov) (OV.string_of_arch arch) opam_repo_rev in
