@@ -226,7 +226,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)
 
-let gen ({staging_hub_id; results_dir; _} as opts) () =
+let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let p1 =
     List.map (fun arch ->
@@ -269,16 +269,16 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s" staging_hub_id f tag (OV.string_of_arch arch))) tags arches in
       let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest push -p %s:%s-opam || true" staging_hub_id f); 
-        `String (Fmt.strf "docker manifest create %s:%s-opam %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest push -p %s:%s-opam || true" prod_hub_id f); 
+        `String (Fmt.strf "docker manifest create %s:%s-opam %s" prod_hub_id f l);
       ] @ annotates @ [
-        `String (Fmt.strf "docker manifest inspect %s:%s-opam" staging_hub_id f);
-        `String (Fmt.strf "docker manifest push -p %s:%s-opam" staging_hub_id f)
+        `String (Fmt.strf "docker manifest inspect %s:%s-opam" prod_hub_id f);
+        `String (Fmt.strf "docker manifest push -p %s:%s-opam" prod_hub_id f)
       ]) in
       `O ([ "command", cmds;
            "label", `String label; retry ();
            docker_agents "amd64";
-           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc) p2 [] in
+           docker_login] @ (concurrency 12  "containers/ocaml")) :: acc) p2 [] in
   let p3 =
     List.map (fun arch ->
       let arch_s = OV.string_of_arch arch in
@@ -287,10 +287,10 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       ignore (Bos.OS.Dir.create ~path:true results_dir);
       let all_compilers =
         D.active_distros arch |>
-        List.map (O.all_ocaml_compilers staging_hub_id arch) in
+        List.map (O.all_ocaml_compilers prod_hub_id arch) in
       let each_compiler =
         D.active_tier1_distros arch |>
-        List.map (O.separate_ocaml_compilers staging_hub_id arch) |> List.flatten in
+        List.map (O.separate_ocaml_compilers prod_hub_id arch) |> List.flatten in
       let dfiles = all_compilers @ each_compiler in
       ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles);
       List.map (fun (f,_) -> f,arch) dfiles
@@ -303,8 +303,7 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase3-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase3-%s/Dockerfile.%s ." tag arch f);
-        `String (Fmt.strf "docker push %s" tag);
-        `String (Fmt.strf "echo Push finished");
+        `String (Fmt.strf "docker push %s" tag)
       ] in
       `O ([ "command", cmds; "label", `String label; retry (); docker_agents arch; docker_login ])
       ) p3
@@ -322,14 +321,14 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
       let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id f tag (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest push -p %s:%s || true" staging_hub_id f); 
-        `String (Fmt.strf "docker manifest create %s:%s %s" staging_hub_id f l);
+        `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id f); 
+        `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id f l);
       ] @ annotates @ [
-        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id f);
-        `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id f)
+        `String (Fmt.strf "docker manifest inspect %s:%s" prod_hub_id f);
+        `String (Fmt.strf "docker manifest push -p %s:%s" prod_hub_id f)
       ]) in
       `O ([ "command", cmds; "label", `String label; retry (); docker_agents "amd64";
-           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc) p4 [] in
+           docker_login] @ (concurrency 12 "containers/ocaml")) :: acc) p4 [] in
   let p4_march =
     List.fold_left (fun acc ldistro ->
       let distro = D.resolve_alias ldistro in
@@ -342,14 +341,14 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":docker: %s" tag in
       let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest push -p %s:%s || true" staging_hub_id tag); 
-        `String (Fmt.strf "docker manifest create %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag); 
+        `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
       ] @ annotates @ [
-        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
-        `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
+        `String (Fmt.strf "docker manifest inspect %s:%s" prod_hub_id tag);
+        `String (Fmt.strf "docker manifest push -p %s:%s" prod_hub_id tag)
       ]) in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
-           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc)
+           docker_login] @ (concurrency 12 "containers/ocaml")) :: acc)
     [] D.latest_distros in
   let p5_march =
     List.fold_left (fun acc ov ->
@@ -364,14 +363,14 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
       let label = Fmt.strf ":docker: %s" tag in
       let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest push -p %s:%s || true" staging_hub_id tag); 
-        `String (Fmt.strf "docker manifest create %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag); 
+        `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
       ] @ annotates @ [
-        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
-        `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
+        `String (Fmt.strf "docker manifest inspect %s:%s" prod_hub_id tag);
+        `String (Fmt.strf "docker manifest push -p %s:%s" prod_hub_id tag)
       ]) in
       `O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
-           docker_login] @ (concurrency 9 "containers/ocaml")) :: acc)
+           docker_login] @ (concurrency 12 "containers/ocaml")) :: acc)
      [] OV.Releases.recent in
   let p6_march =
     let distro = D.resolve_alias (`Debian `Stable) in
@@ -384,14 +383,14 @@ let gen ({staging_hub_id; results_dir; _} as opts) () =
     let label = Fmt.strf ":docker: latest" in
     let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
     let cmds = `A (pulls @ [
-        `String (Fmt.strf "docker manifest push -p %s:%s || true" staging_hub_id tag);
-        `String (Fmt.strf "docker manifest create %s:%s %s" staging_hub_id tag l);
+        `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag);
+        `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
       ] @ annotates @ [
-        `String (Fmt.strf "docker manifest inspect %s:%s" staging_hub_id tag);
-        `String (Fmt.strf "docker manifest push -p %s:%s" staging_hub_id tag)
+        `String (Fmt.strf "docker manifest inspect %s:%s" prod_hub_id tag);
+        `String (Fmt.strf "docker manifest push -p %s:%s" prod_hub_id tag)
       ]) in
     [`O ([ "command", cmds; "label", `String label; docker_agents "amd64"; retry ();
-           docker_login] @ (concurrency 5 "containers/ocaml")) ] in
+           docker_login] @ (concurrency 12 "containers/ocaml")) ] in
  
   let wait = [`String "wait"] in
   let yml = `O [ "steps", `A (p1_builds @ wait @ p2_march @ wait @ p3_builds @ wait @ p3_march @ p4_march @ p5_march @ p6_march) ] in
