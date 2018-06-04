@@ -219,21 +219,9 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
-  let cmds =
-    `A [
-      `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
-      `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
-      `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s:%s opam list -a -s | sort -R | head -5 > %s/pkgs.txt" staging_hub_id tag tag);
-      `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
-      `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
-      `String (Fmt.strf "echo steps: > all.yml");
-      `String (Fmt.strf "(for i in `cat %s/pkgs.txt`; do cat %s/build-$$i.yml; done) | grep -v ^steps >> all.yml" tag tag);
-      `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
-    ] in
+  let cmds = `A [ `String (Fmt.strf "./scripts/opam-list-all-pkgs %s %s %s" staging_hub_id tag opam_repo_rev) ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
-  let gather_cmds = `A [ 
-    `String (Fmt.strf "./scripts/opam-gather-results %s %s %s %s %s" tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
+  let gather_cmds = `A [ `String (Fmt.strf "./scripts/opam-gather-results %s %s %s %s %s" tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)
