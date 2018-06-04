@@ -224,7 +224,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent artifact download '%s/*' ." tag);
       `String (Fmt.strf "docker build --no-cache --rm --pull -t %s:%s -f %s/Dockerfile.%s ." staging_hub_id tag tag opam_repo_rev);
       `String (Fmt.strf "docker push %s:%s" staging_hub_id tag);
-      `String (Fmt.strf "docker run %s:%s opam list -a -s | sort -R | head -50 > %s/pkgs.txt" staging_hub_id tag tag);
+      `String (Fmt.strf "docker run %s:%s opam list -a -s | sort -R | head -5 > %s/pkgs.txt" staging_hub_id tag tag);
       `String (Fmt.strf "buildkite-agent artifact upload %s/pkgs.txt" tag);
       `String (Fmt.strf "cat %s/pkgs.txt | xargs -n 1 -I __NAME__ sh -c \"sed -e 's/__PKG__/__NAME__/g' < %s/template.yml > %s/build-__NAME__.yml\"" tag tag tag);
       `String (Fmt.strf "echo steps: > all.yml");
@@ -232,22 +232,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
       `String (Fmt.strf "buildkite-agent pipeline upload all.yml" );
     ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
-  let gather_cmds = `A [
-    `String (Fmt.strf "rm -rf %s" tag);
-    `String (Fmt.strf "buildkite-agent artifact download '%s/results/*' ." tag);
-    `String (Fmt.strf "echo %s > %s/arch" (OV.string_of_arch arch) tag);
-    `String (Fmt.strf "echo %s > %s/ov" (OV.to_string ov) tag);
-    `String (Fmt.strf "echo %s > %s/distro" (D.tag_of_distro distro) tag);
-    `String (Fmt.strf "echo %s > %s/rev" opam_repo_rev tag);
-    `String (Fmt.strf "tar -jcvf results-%s.tar.bz2 %s" tag tag);
-    `String (Fmt.strf "buildkite-agent artifact upload results-%s.tar.bz2" tag);
-    `String (Fmt.strf "buildkite-agent artifact download 'obi-buildkite' . && chmod a+x obi-buildkite");
-    `String (Fmt.strf "rm -rf obi-logs && git clone -b builds --depth=1 git@github.com:avsm/obi-logs");
-    `String (Fmt.strf "./obi-buildkite process -vv -i %s -o obi-logs" tag);
-    `String (Fmt.strf "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l");
-    `String (Fmt.strf "git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'");
-    `String (Fmt.strf "cd obi-logs && find . -type f && git add . && git pull --commit && git commit -m 'update %s' && git push -u origin builds" tag);
-  ] in
+  let gather_cmds = `A [ `String (Fmt.strf "docker run -v ~/.ssh/id_rsa.bulk:/home/opam/.ssh/id_rsa.bulk %s:obi-buildkite ./scripts/opam-gather-results %s %s %s %s %s" staging_hub_id tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)

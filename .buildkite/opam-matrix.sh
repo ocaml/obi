@@ -43,6 +43,6 @@ else
   build "debian-9" "4.06+flambda" "amd64"
   build "alpine-3.7" "4.06" "amd64"
   build "ubuntu-18.04" "4.06" "amd64"
-  build "fedora-27" "4.06" "amd64"
+  build "fedora-28" "4.06" "amd64"
 fi
 index
