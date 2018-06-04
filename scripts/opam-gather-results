@@ -17,7 +17,7 @@ buildkite-agent artifact upload results-$tag.tar.bz2
 rm -rf obi-logs
 git clone -b builds --depth=1 git://github.com/avsm/obi-logs
 docker pull ocaml/opam2-staging:obi-buildkite
-docker run -it ocaml/opam2-staging:obi-buildkite -v `pwd`/$tag:/home/opam/$tag -v `pwd`/obi-logs:/home/opam/obi-logs obi-buildkite process -vv -i /home/opam/$tag -o /home/opam/obi-logs
+docker run -it -v `pwd`/$tag:/home/opam/$tag -v `pwd`/obi-logs:/home/opam/obi-logs ocaml/opam2-staging:obi-buildkite obi-buildkite process -vv -i /home/opam/$tag -o /home/opam/obi-logs
 ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
 cd obi-logs && find . -type f && git add . && git pull --commit && git commit -m "update $tag" && git push -u origin builds
 rm -rf obi-logs
