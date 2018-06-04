@@ -64,7 +64,7 @@ if [ ! -z "$tospawn" ]; then
   - cp output/$i.json $tag/results/$i.json
   - buildkite-agent artifact upload $tag/results/$i.txt
   - buildkite-agent artifact upload $tag/results/$i.json
-  - sudo rm -rf output
+  - rm -rf output
 EOL
   done
   cat tobuild.yml
@@ -82,6 +82,7 @@ for i in $tobuild; do
   cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt
   buildkite-agent artifact upload $tag/results/$i.json
+  rm -rf output
 done
 
 echo "--- Recording uninstallable results"
@@ -94,4 +95,5 @@ for i in `cat uninstallable.txt`; do
   cp output/$i.json $tag/results/$i.json
   buildkite-agent artifact upload $tag/results/$i.txt
   buildkite-agent artifact upload $tag/results/$i.json
+  rm -rf output
 done
