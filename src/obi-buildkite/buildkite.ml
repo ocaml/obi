@@ -205,8 +205,8 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   let dfiles = 
     let open Dockerfile in
     O.bulk_build staging_hub_id distro ov opam_repo_rev @@
-    copy ~src:["scripts/opam-ci-install"] ~dst:"/usr/bin/opam-ci-install" () @@
-    run "sudo chmod a+x /usr/bin/opam-ci-install" @@
+    copy ~src:[".buildkite/obi-ci-install.sh"] ~dst:"/usr/bin/obi-ci-install" () @@
+    run "sudo chmod a+x /usr/bin/obi-ci-install" @@
     run "opam-sandbox-enable"
   in
   let tag = Fmt.strf "bulk-%s-%s-linux-%s-%s" (D.tag_of_distro distro) (OV.to_string ov |> String.map (function '+' -> '-' | x -> x)) (OV.string_of_arch arch) opam_repo_rev in
@@ -215,13 +215,13 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true dir);
   ignore(G.generate_dockerfiles ~crunch:false dir [ opam_repo_rev, dfiles] );
   let bulk_tmpl =
-    let cmds = `A [ `String (Fmt.strf "./scripts/opam-batch-install %s %s %s __PKG__" staging_hub_id tag (OV.string_of_arch arch)) ] in
+    let cmds = `A [ `String (Fmt.strf "./.buildkite/obi-batch-install.sh %s %s %s __PKG__" staging_hub_id tag (OV.string_of_arch arch)) ] in
     let label = `String "__PKG__" in
     `O [ "steps", `A [ `O [ "commands", cmds; "label", label; retry (); docker_agents (OV.string_of_arch arch) ] ] ] in
   ignore (Bos.OS.File.write Fpath.(dir / "template.yml") (Yaml.to_string_exn bulk_tmpl));
-  let cmds = `A [ `String (Fmt.strf "./scripts/opam-list-all-pkgs %s %s %s" staging_hub_id tag opam_repo_rev) ] in
+  let cmds = `A [ `String (Fmt.strf "./.buildkite/obi-list-all-pkgs.sh %s %s %s" staging_hub_id tag opam_repo_rev) ] in
   let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
-  let gather_cmds = `A [ `String (Fmt.strf "./scripts/opam-gather-results %s %s %s %s %s" tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
+  let gather_cmds = `A [ `String (Fmt.strf "./.buildkite/obi-gather-results.sh %s %s %s %s %s" tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)
