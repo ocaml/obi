@@ -1,6 +1,7 @@
 steps:
   - label: 'Build Index'
     command:
+      - 'cd /home/opam'
       - 'rm -rf opam-repository'
       - 'git clone git://github.com/ocaml/opam-repository'
       - 'rm -rf obi-logs'
