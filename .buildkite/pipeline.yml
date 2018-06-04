@@ -1,0 +1,41 @@
+steps:
+  - label: 'Build'
+    agents:
+      arch: amd64
+    command:
+      - 'opam switch 4.06'
+      - 'rsync -a /src/ /home/opam/src/ && sudo chown -R opam /home/opam/src'
+      - 'sudo apt update && sudo apt install -y m4 pkg-config'
+      - 'opam pin add -n --dev dockerfile-opam'
+      - 'opam pin add -n --dev ocaml-version'
+      - 'opam pin add -n --dev yaml'
+      - 'opam install --deps-only /home/opam/src'
+      - 'cd /home/opam/src && opam exec -- jbuilder build'
+      - 'cd /home/opam/src && opam exec -- jbuilder exec -- obi-buildkite gen -vv'
+      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "phase*-*/*"'
+      - 'cd /home/opam/src/_results && buildkite-agent artifact upload "README.md"'
+      - 'cat /home/opam/src/_results/phase1.yml | buildkite-agent pipeline upload'
+    concurrency: 1
+    concurrency_group: "opam/build"
+    plugins:
+      docker#v1.1.1:
+        image: "ocaml/opam2-staging:ubuntu-16.04"
+        workdir: /src
+        always_pull: true
+        environment:
+          - OPAMYES=1
+          - OPAMJOBS=12
+  - wait
+  - command:
+    - 'rm -rf infrastructure.wiki/'
+    - 'git clone git@github.com:ocaml/infrastructure.wiki'
+    - 'buildkite-agent artifact download "README.md" .'
+    - 'mv README.md infrastructure.wiki/Containers.md'
+    - 'git config --global user.email "bactrian@ocaml.org"'
+    - 'git config --global user.name "Bactrian the Build Bot"'
+    - '(cd infrastructure.wiki && git add . && git commit -m containers -a && git push) || true'
+    label: ':rocket: README'
+    concurrency: 1
+    concurrency_group: "opam/push"
+    agents:
+      githubpusher: true
