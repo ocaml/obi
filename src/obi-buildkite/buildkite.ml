@@ -266,7 +266,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
-      let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s" staging_hub_id f tag (OV.string_of_arch arch))) tags arches in
+      let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s" prod_hub_id f tag (OV.string_of_arch arch))) tags arches in
       let label = Fmt.strf ":docker: %s-opam" f in
       let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest push -p %s:%s-opam || true" prod_hub_id f); 
@@ -319,7 +319,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       let tags = List.map (fun arch -> Fmt.strf "%s:%s-linux-%s" staging_hub_id f (OV.string_of_arch arch)) arches in
       let l = String.concat " " tags in
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
-      let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id f tag (OV.string_of_arch arch))) tags arches in
+      let annotates = List.map2 (fun tag arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" prod_hub_id f tag (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id f); 
         `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id f l);
@@ -339,7 +339,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
       let tag = D.tag_of_distro ldistro in
       let label = Fmt.strf ":docker: %s" tag in
-      let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
+      let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" prod_hub_id tag t (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag); 
         `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
@@ -361,7 +361,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
       let tag = Fmt.strf "%s" (OV.to_string ov) in
       let label = Fmt.strf ":docker: %s" tag in
-      let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
+      let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" prod_hub_id tag t (OV.string_of_arch arch))) tags arches in
       let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag); 
         `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
@@ -381,7 +381,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
     let pulls = List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags in
     let tag = "latest" in
     let label = Fmt.strf ":docker: latest" in
-    let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" staging_hub_id tag t (OV.string_of_arch arch))) tags arches in
+    let annotates = List.map2 (fun t arch -> `String (Fmt.strf "docker manifest annotate %s:%s %s --arch %s" prod_hub_id tag t (OV.string_of_arch arch))) tags arches in
     let cmds = `A (pulls @ [
         `String (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag);
         `String (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l);
