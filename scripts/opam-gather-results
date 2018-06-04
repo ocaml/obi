@@ -1,4 +1,4 @@
-#!/bin/bash -exu
+#!/bin/bash -ex
 
 tag=$1
 arch=$2

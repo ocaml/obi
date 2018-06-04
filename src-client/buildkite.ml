@@ -234,7 +234,7 @@ let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
   let p1_builds = `O ([ "command", cmds; "label", `String label; retry (); docker_agents (OV.string_of_arch arch); docker_login ]) in
   let gather_cmds = `A [ 
     `String (Fmt.strf "docker pull %s:obi-buildkite" staging_hub_id);
-    `String (Fmt.strf "docker run -v ~/.ssh/id_rsa.bulk:/home/opam/.ssh/id_rsa.bulk %s:obi-buildkite ./scripts/opam-gather-results %s %s %s %s %s" staging_hub_id tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
+    `String (Fmt.strf "docker run -v ~/.ssh/id_rsa.bulk:/home/opam/.ssh/id_rsa.bulk -v /usr/bin/buildkite-agent:/usr/bin/buildkite-agent %s:obi-buildkite opam-gather-results %s %s %s %s %s" staging_hub_id tag (OV.string_of_arch arch) (OV.to_string ov) (D.tag_of_distro distro) opam_repo_rev) ] in
   let gather = [ `O (["command", gather_cmds; retry (); "agents", `O [ "githubpusher", `Bool true ]; "label", `String "Gather Results"]) ] in
   let yml = `O [ "steps", `A ( p1_builds :: `String "wait" :: gather) ] in
   Bos.OS.File.write Fpath.(results_dir / "bulk.yml") (Yaml.to_string_exn ~len:256000 yml)
