@@ -9,7 +9,7 @@ echo --- Pushing bulk image to Hub
 docker push $hub:$tag
 echo --- Listing packages to buikd
 mkdir -p $tag
-docker run $hub:$tag opam list -a -s | sort -R | head -5 > $tag/pkgs.txt
+docker run $hub:$tag opam list -a -s > $tag/pkgs.txt
 buildkite-agent artifact upload $tag/pkgs.txt
 echo --- Generating and spawning build jobs
 cat $tag/pkgs.txt | xargs -n 1 -I __NAME__ sh -c "sed -e 's/__PKG__/__NAME__/g' < $tag/template.yml > $tag/build-__NAME__.yml"
