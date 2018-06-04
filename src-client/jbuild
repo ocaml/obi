@@ -1,9 +1,0 @@
-(jbuild_version 1)
-
-(executables
- ((names (buildkite))
-  (public_names (obi-buildkite))
-  (libraries (obi dockerfile-opam dockerfile-cmd lambdasoup uri ptime yaml))
-  (preprocess (per_module ((pps (ppx_sexp_conv)) (import2))))
-  (package obi)
-))
