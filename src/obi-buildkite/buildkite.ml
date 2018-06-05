@@ -252,8 +252,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       let cmds = `A [
         `String (Fmt.strf "buildkite-agent artifact download phase1-%s/Dockerfile.%s ." arch f);
         `String (Fmt.strf "docker build --no-cache --rm --pull -t %s -f phase1-%s/Dockerfile.%s ." tag arch f);
-        `String (Fmt.strf "docker push %s" tag);
-        `String (Fmt.strf "echo Push finished");
+        `String (Fmt.strf "docker push %s" tag)
       ] in
       `O ([ "command", cmds;
            "label", `String label; retry ();
@@ -431,7 +430,7 @@ let process input_dir output_dir () =
         Scanf.sscanf metainfo "%d %f %f" (fun a b c -> a,b,c) 
       with exn ->
         Logs.err (fun l -> l "ERROR parsing job output (%a %d %s)" Fpath.pp pkg (List.length lines) (Printexc.to_string exn));
-        exit 1
+        130,0.,0.
     in
     let json_file = Fpath.(logs // pkg |> set_ext "json") in
     OS.File.read json_file >>= fun actions ->
