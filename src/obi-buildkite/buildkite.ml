@@ -199,12 +199,12 @@ let docker_agents arch =
 let retry () =
   "retry", `O [ "automatic", `Bool true ]
 
-let bulk ({staging_hub_id; results_dir; _}) arch {ov; distro} opam_repo_rev () =
+let bulk ({staging_hub_id; results_dir; prod_hub_id}) arch {ov; distro} opam_repo_rev () =
   ignore (Bos.OS.Dir.create ~path:true results_dir);
   let ov = OV.(with_patch ov None) in
   let dfiles = 
     let open Dockerfile in
-    O.bulk_build staging_hub_id distro ov opam_repo_rev @@
+    O.bulk_build prod_hub_id distro ov opam_repo_rev @@
     copy ~src:[".buildkite/obi-ci-install.sh"] ~dst:"/usr/bin/obi-ci-install" () @@
     run "sudo chmod a+x /usr/bin/obi-ci-install" @@
     run "opam-sandbox-enable"

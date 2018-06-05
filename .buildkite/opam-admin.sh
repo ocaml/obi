@@ -19,7 +19,7 @@ cmd() {
     - buildkite-agent artifact upload $cmd.txt
   plugins:
     docker#v1.1.1:
-      image: "ocaml/opam2-staging"
+      image: "ocaml/opam2"
       always_pull: true
       env:
         OPAMCOLOR: "never"
