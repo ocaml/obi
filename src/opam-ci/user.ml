@@ -199,13 +199,15 @@ type copts = {
 
 type params = {
   distro: D.t option;
+  ov: OV.t option;
+  arch: OV.arch option;
 }
 
 let copts maintainers filters refresh =
   { maintainers; filters; refresh }
 
-let params distro =
-  { distro }
+let params distro ov arch =
+  { distro ; ov; arch }
 
 let check_maintainer ~maintainers pkg =
   let open Obi.Index in
@@ -330,12 +332,23 @@ let param_t =
   let distro =
     let doc = "List only logs relating to this distribution" in
     let open Arg in
-    let dterms = List.map (fun d -> (D.latest_tag_of_distro d), d) D.latest_distros in
-    let term = Arg.enum dterms in
-    value & opt term (`Debian `Stable) & info ["distro"] ~docv:"DISTRO" ~doc
+    let term = conv ~docv:"DISTRO"
+     ((fun d -> match D.distro_of_tag d with Some r -> Ok r | None -> Error (`Msg ("unknown distribution " ^ d))),
+      (fun ppf d -> Fmt.pf ppf "%s" (D.tag_of_distro d))) in
+    value & opt (some term) None  & info ["distro"] ~docv:"DISTRO" ~doc
   in
+  let ov =
+    let doc = "List only logs relating to this OCaml compiler version" in
+    let open Arg in
+    let term = conv ~docv:"COMPILER" (OV.of_string,OV.pp) in
+    value & opt (some term) None & info ["compiler"] ~doc in
+  let arch =
+    let doc = "List only logs relating to this CPU architecture" in
+    let open Arg in
+    let term = enum ["amd64", `X86_64; "arm64", `Aarch64; "ppc64le", `Ppc64le] in
+    value & opt (some term) None & info ["arch"] ~doc in
   let open Term in
-  const params $ distro
+  const params $ distro $ ov $ arch
 
 let status_cmd =
   let doc = "summary of builds across compilers, OS and CPUs" in
