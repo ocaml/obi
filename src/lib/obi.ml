@@ -24,6 +24,7 @@ end
 module Builds = struct
   type build_result = {
     code: [`Signaled of int | `Exited of int ];
+    actions: string;
     start_time: float;
     end_time: float;
   } [@@deriving sexp]

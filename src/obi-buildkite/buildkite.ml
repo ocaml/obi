@@ -416,6 +416,7 @@ let process input_dir output_dir () =
   let ov = String.trim ov |> OV.of_string_exn in
   let logs = Fpath.(input_dir / "results") in
   OS.Dir.contents ~rel:true logs >>= fun pkgs ->
+  let pkgs = List.filter (fun p -> Fpath.has_ext ".txt" p) pkgs in
   let odir = Fmt.strf "%a/metadata/linux/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) |> Fpath.v in
   OS.Dir.create ~path:true odir >>= fun _ -> 
   let ldir = Fmt.strf "%a/logs/linux/%s/%s/%s/%s" Fpath.pp output_dir (OV.string_of_arch arch) (D.tag_of_distro distro) (OV.to_string ov) rev |> Fpath.v in
@@ -429,13 +430,15 @@ let process input_dir output_dir () =
         let metainfo = List.rev lines |> List.hd in
         Scanf.sscanf metainfo "%d %f %f" (fun a b c -> a,b,c) 
       with exn ->
-        Logs.info (fun l -> l "ERROR assuming default (%a %d %s)" Fpath.pp pkg (List.length lines) (Printexc.to_string exn));
-        98, 0., 0.
+        Logs.err (fun l -> l "ERROR parsing job output (%a %d %s)" Fpath.pp pkg (List.length lines) (Printexc.to_string exn));
+        exit 1
     in
+    let json_file = Fpath.(logs // pkg |> set_ext "json") in
+    OS.File.read json_file >>= fun actions ->
     begin match exit_code with
     | 0 -> ()
     | n -> ignore (OS.File.write_lines Fpath.(ldir // pkg) lines) end;
-    let res = { Builds.code = `Exited exit_code; start_time; end_time } in
+    let res = { Builds.code = `Exited exit_code; start_time; end_time; actions } in
     pkg_version (Fpath.rem_ext pkg |> Fpath.to_string) >>= fun (name, version) ->
     let versions = if Hashtbl.mem h name then Hashtbl.find h name else [] in
     let versions = (version, res) :: (List.remove_assoc version versions) in
