@@ -107,6 +107,17 @@ module A = struct
   let test_ocaml406to7 m =
     test_two_versions ov_stable ov_rc m
 
+  (* There are any failures *)
+  let has_fails m =
+    List.exists (fun m ->
+      match classify (Some m) with
+      | `Fail | `No_sources -> true
+      | `Ok | `Uninstallable | `Unknown -> false) m
+
+  let has_variant_fails m =
+    List.filter (fun m -> OV.extra m.params.ov <> None) m |>
+    has_fails
+
   (* Distros that failed where the Debian version didnt *)
   let find_distro_fails m =
     match find ~distro:base_distro m with
@@ -226,9 +237,19 @@ let render_package_logs ppf version metadata =
 let render_package ppf ~filters pkg =
   let open Obi.Index in
   match filters with
-  | `All | `Failures | `Variants (* TODO *)->
+  | `All ->
     Fmt.pf ppf "%s:\n%!" pkg.name;
     List.iter (render_package_version ppf) pkg.versions
+  | `Failures ->
+    let pkgs = List.filter (fun (_, m) -> A.has_fails m) pkg.versions in
+    List.iter (fun v ->
+      Fmt.pf ppf "%30s %!" pkg.name;
+      render_package_version ppf v) pkgs
+  | `Variants ->
+    let pkgs = List.filter (fun (_, m) -> A.has_variant_fails m) pkg.versions in
+    List.iter (fun v ->
+      Fmt.pf ppf "%30s %!" pkg.name;
+      render_package_version ppf v) pkgs
   | `Recent ->
     let version = A.latest_version pkg in
     Fmt.pf ppf "%30s %!" pkg.name;
