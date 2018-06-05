@@ -180,10 +180,11 @@ end
 type copts = {
   maintainers: string list;
   all_versions: bool;
+  refresh: [`Local|`Poll|`Network];
 }
 
-let copts maintainers all_versions =
-  { maintainers; all_versions }
+let copts maintainers all_versions refresh =
+  { maintainers; all_versions; refresh }
 
 let check_maintainer ~maintainers pkg =
   let open Obi.Index in
@@ -236,9 +237,9 @@ let render_package_details ppf pkg =
     Fmt.(pf ppf "@\n");
   ) pkg.versions
 
-let show_status {maintainers; all_versions} () =
+let show_status {maintainers; all_versions; refresh} () =
   let open Obi.Index in
-  Repos.init () >>= fun pkgs ->
+  Repos.init ~refresh () >>= fun pkgs ->
   let ppf = Fmt.stdout in
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
@@ -247,11 +248,11 @@ let show_status {maintainers; all_versions} () =
   ) pkgs;
   Ok ()
 
-let show_logs pkg () =
+let show_logs pkg {refresh} () =
   let open Obi.Index in
   (* TODO split on version *)
   let ppf = Fmt.stdout in
-  Repos.init () >>= fun pkgs ->
+  Repos.init ~refresh () >>= fun pkgs ->
   match List.find_opt (fun p -> p.name = pkg) pkgs with
   | None -> Error (`Msg "Package not found")
   | Some pkg ->
@@ -282,11 +283,16 @@ let copts_t =
   let all_versions =
     let doc = "Show all versions of packages" in
     let open Arg in
-    value & flag
-    & info ["all-versions";"a"] ~docv:"ALL_VERSIONS" ~doc
+    value & flag & info ["all-versions";"a"] ~docv:"ALL_VERSIONS" ~doc
+  in
+  let refresh =
+    let doc = "How to query the network to refresh status logs" in
+    let open Arg in
+    let term = Arg.enum ["local",`Local;"poll",`Poll;"network",`Network] in
+    value & opt term `Poll & info ["refresh"] ~docv:"REFRESH_LOGS" ~doc
   in
   let open Term in
-  const copts $ maintainer $ all_versions
+  const copts $ maintainer $ all_versions $ refresh
 
 let status_cmd =
   let doc = "obi status" in
@@ -306,7 +312,7 @@ let logs_cmd =
     [ `S Manpage.s_description
     ; `P "obi logs." ]
   in
-  ( Term.(term_result (const show_logs $ pkg_t $ setup_logs))
+  ( Term.(term_result (const show_logs $ pkg_t $ copts_t $ setup_logs))
   , Term.info "logs" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 
