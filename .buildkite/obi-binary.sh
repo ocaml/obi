@@ -6,7 +6,7 @@ arches="amd64 arm64 ppc64le"
 
 dockerfile_for_arch() {
   arch=$1
-  DFILE="FROM ocaml/opam2-staging
+  DFILE="FROM ocaml/opam2
 RUN sudo apt-get update && sudo apt-get -y install m4 pkg-config
 RUN opam switch 4.06
 COPY . /home/opam/src/
