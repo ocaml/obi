@@ -1,14 +1,7 @@
 steps:
   - label: 'Build Index'
     command:
-      - 'cd /home/opam'
-      - 'rm -rf opam-repository'
-      - 'git clone git://github.com/ocaml/opam-repository'
-      - 'rm -rf obi-logs'
-      - 'git clone -b builds --depth=1 git://github.com/avsm/obi-logs'
-      - 'obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp'
-      - 'buildkite-agent artifact upload index.sxp'
-      - 'cd obi-logs && buildkite-agent artifact upload maintainers.sxp && buildkite-agent artifact upload tags.sxp'
+      - ./.buildkite/obi-index.sh
     agents:
       docker: "true"
       os: "linux"
