@@ -302,19 +302,19 @@ let setup_logs =
 
 let copts_t =
   let maintainer =
-    let doc = "List of maintainer strings to filter packages on" in
+    let doc = "Match packages via a case-insensitive substring check on the $(b,maintainer) and $(b,tags) fields in the opam metadata. $(docv) can be repeated multiple times to include more filters." in
     let open Arg in
     value & opt_all string []
     & info ["maintainer"; "m"] ~docv:"MAINTAINER" ~doc
   in
   let filters =
-    let doc = "Show different versions of packages" in
+    let doc = "Filter the list of packages displayed. $(docv) defaults to $(i,failures) to show all packages with errors. $(i,recent) will show results for the latest version of each package. $(i,variants) will list packages that regress with a compiler variant such as safe-string or flambda. $(i,all) will show all known results for all versions including successes." in
     let open Arg in
     let term = Arg.enum ["all",`All; "failures",`Failures; "recent",`Recent; "variants",`Variants] in
     value & opt term `Failures & info ["filter";"f"] ~docv:"FILTERS" ~doc
   in
   let refresh =
-    let doc = "How to query the network to refresh status logs" in
+    let doc = "How to refresh status logs. $(docv) defaults to $(i,poll) which pulls from GitHub every hour. $(i,network) will force the metadata to be pulled, and $(i,local) will only use the cached version locally." in
     let open Arg in
     let term = Arg.enum ["local",`Local;"poll",`Poll;"network",`Network] in
     value & opt term `Poll & info ["refresh"] ~docv:"REFRESH_LOGS" ~doc
@@ -323,11 +323,19 @@ let copts_t =
   const copts $ maintainer $ filters $ refresh
 
 let status_cmd =
-  let doc = "obi status TODO" in
+  let doc = "summary of builds across compilers, OS and CPUs" in
   let exits = Term.default_exits in
   let man =
     [ `S Manpage.s_description
-    ; `P "obi status TODO." ]
+    ; `P "The status view shows a panel of icons that represent different combinations of ways to build opam packages. From left to right, these are:"
+    ; `I ("Compiler", "The circled numbers represent OCaml compiler versions (a circled 6 is OCaml 4.06, a circled 7 is 4.07, and so on). ")
+    ; `I ("Distro","The square letters indicate different OS distributions. $(i,D) is Debian, $(i,F) is Fedora, $(i,A) is Alpine, $(i,U) is Ubuntu and $(i,O) is OpenSUSE.")
+    ; `I ("CPU Architecture", "The small circled letters represent different CPU architectures. $(i,x) represents x86_64, $(i,a) is arm64 and $(i,p) is PowerPC64LE.")
+    ; `P "Some compiler variants are also tested to track down specific problems, shown by the icons to the far right of the display."
+    ; `I ("safe-string", "The $(i,SS) icon is for 'safe-string' failures, which would happen in OCaml 4.06 due to the switch to immutable strings.")
+    ; `I ("flambda","The $(i,fl) icon is for packages that fail to compile with the flambda variant of the compiler.")
+    ; `I ("release-candidate","The $(i,flag) icon is for packages that fail to compile with the latest release candidate of OCaml; this is useful to figure out how much of the ecosystem works with a soon-to-be-released compiler.")
+    ]
   in
   ( Term.(term_result (const show_status $ copts_t $ setup_logs))
   , Term.info "status" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
