@@ -132,7 +132,6 @@ let find_latest_results srevs params =
     (fun rev ->
        Hashtbl.find_all h rev.Rev.rev |>
        List.find_opt (fun (p,_) ->
-    (*     Printf.eprintf "comparing %s -> %s\n%!" (ps Obi.sexp_of_params p) (ps Obi.sexp_of_params params); *)
           p = params) |>
        function None -> false | Some (_,b) -> r := Some b; true
     ) srevs in
@@ -140,8 +139,12 @@ let find_latest_results srevs params =
   | None -> failwith "distro not found"
   | Some v -> rev, v
 
+let live_revs = Hashtbl.create 7
+
 let pkg_metadata_of_batch logs_dir b =
   let open Obi.Builds in
+  (* register this revision as a live one so we dont delete it *)
+  Hashtbl.replace live_revs b.rev ();
   let rev = b.rev in
   let params = b.params in
   C.map (fun pkg ->
@@ -209,6 +212,59 @@ let merge_pkgs (l:Obi.Index.pkgs list) =
   ) l;
   !r
 
+let gc input_dir =
+  let meta_dir = Fpath.(input_dir / "metadata") in
+  let logs_dir = Fpath.(input_dir / "logs") in
+  OS.Dir.contents ~rel:true logs_dir >>=
+  C.iter (fun os ->
+    let dir = Fpath.(logs_dir // os) in
+    Logs.info (fun l -> l "Found OS %a" Fpath.pp os);
+    OS.Dir.contents ~rel:true dir >>=
+    C.iter (fun arch ->
+      let dir = Fpath.(dir // arch) in
+      OS.Dir.contents ~rel:true dir >>=
+      C.iter (fun distro ->
+        let dir = Fpath.(dir // distro) in
+        OS.Dir.contents ~rel:true dir >>=
+        C.iter (fun ov ->
+          let dir = Fpath.(dir // ov) in
+          OS.Dir.contents ~rel:true dir >>=
+          C.iter (fun rev ->
+            let dir = Fpath.(dir // rev) in
+            if Hashtbl.mem live_revs (Fpath.to_string rev) then begin
+              Logs.debug (fun l -> l "Logs repo %a is live, not deleting" Fpath.pp rev);
+              Ok ()
+            end else begin
+              Logs.debug (fun l -> l "Logs repo %a is not live, so deleting" Fpath.pp dir);
+              Bos.OS.Dir.delete ~must_exist:true ~recurse:true dir
+            end
+          ))))) >>= fun () ->
+    OS.Dir.contents ~rel:true meta_dir >>=
+    C.iter (fun os ->
+    let dir = Fpath.(meta_dir // os) in
+    OS.Dir.contents ~rel:true dir >>=
+    C.iter (fun arch ->
+      let dir = Fpath.(dir // arch) in
+      OS.Dir.contents ~rel:true dir >>=
+      C.iter (fun distro ->
+        let dir = Fpath.(dir // distro) in
+        OS.Dir.contents ~rel:true dir >>=
+        C.iter (fun ov ->
+          let dir = Fpath.(dir // ov) in
+          OV.of_string (Fpath.to_string ov) >>= fun ov ->
+          OS.Dir.contents ~rel:true dir >>=
+          C.iter (fun rev ->
+            let file = Fpath.(dir // rev) in
+            let rev = Fpath.(rem_ext rev) in
+            if Hashtbl.mem live_revs (Fpath.to_string rev) then begin
+              Logs.debug (fun l -> l "Metadata %a is live, not deleting" Fpath.pp rev);
+              Ok ()
+            end else begin
+              Logs.debug (fun l -> l "Metadata file %a is not live, so deleting" Fpath.pp file);
+              Bos.OS.File.delete ~must_exist:true file
+            end
+          )))))
+ 
 let summarise input_dir (opam_dir:Fpath.t) =
   let meta_dir = Fpath.(input_dir / "metadata") in
   let logs_dir = Fpath.(input_dir / "logs") in
@@ -271,5 +327,5 @@ let summarise input_dir (opam_dir:Fpath.t) =
     save_maintainers input_dir;
     save_tags input_dir;
     print_endline (ps Obi.Index.sexp_of_pkgs pkgs);
-
-    Ok ()
+    Hashtbl.iter (fun k v -> prerr_endline k) live_revs;
+    gc input_dir
