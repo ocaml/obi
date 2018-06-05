@@ -17,7 +17,12 @@
 module Index : sig
   type maintainers = (string * string) list [@@deriving sexp]
   type tags = (string * string list) list [@@deriving sexp]
-  type result =  [`Signaled of int | `Exited of int | `Uninstallable of string list ] [@@deriving sexp]
+  type result =  [
+    | `Signaled of int
+    | `Exited of int
+    | `Uninstallable of string list
+    | `No_sources of string list
+  ] [@@deriving sexp]
   type params = {
     arch: Dockerfile_distro.arch;
     distro : Dockerfile_distro.t;

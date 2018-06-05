@@ -1,0 +1,24 @@
+opam-version: "1.2"
+maintainer: "Anil Madhavapeddy <anil@recoil.org>"
+authors: ["Anil Madhavapeddy <anil@recoil.org>"]
+homepage: "https://github.com/avsm/obi"
+doc: "http://avsm.github.io/avsm/obi/doc"
+license: "ISC"
+dev-repo: "https://github.com/avsm/obi.git"
+bug-reports: "https://github.com/avsm/obi/issues"
+tags: ["org:mirage" "org:ocamllabs"]
+available: [ ocaml-version >= "4.05.0"]
+depends: [
+  "jbuilder" {build & >="1.0+beta17"}
+  "dockerfile-opam"
+  "dockerfile-cmd"
+  "ezjsonm"
+  "lambdasoup"
+  "uri"
+  "ptime"
+  "yaml"
+]
+build: [
+  ["jbuilder" "subst" "-p" name "--name" name] {pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]

@@ -3,7 +3,7 @@
 (executables
  ((names (buildkite))
   (public_names (obi-buildkite))
-  (libraries (obi dockerfile-opam dockerfile-cmd lambdasoup uri ptime yaml))
+  (libraries (obi dockerfile-opam dockerfile-cmd lambdasoup uri ptime yaml ezjsonm))
   (preprocess (per_module ((pps (ppx_sexp_conv)) (import))))
   (package obi)
 ))
