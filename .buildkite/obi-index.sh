@@ -2,8 +2,8 @@
 
 echo --- Cloning opam repository
 cd /home/opam
-rm -rf opam-repository
-git clone git://github.com/ocaml/opam-repository
+git -C opam-repository pull origin master
+opam update
 echo --- Cloning obi-logs
 rm -rf obi-logs
 git clone -b builds --depth=1 git://github.com/avsm/obi-logs
