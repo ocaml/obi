@@ -76,6 +76,7 @@ module A = struct
     | Some {build_result=`Exited _} -> `Fail
     | Some {build_result=`Signaled _} -> `Fail
     | Some {build_result=`Uninstallable _} -> `Uninstallable
+    | Some {build_result=`No_sources _} -> `No_sources
 
   let is_success m =
     m.build_result = `Exited 0
@@ -94,6 +95,7 @@ module A = struct
     |`Ok, `Ok -> `Ok
     |`Fail, `Fail -> `Fail
     |`Uninstallable,_ | _,`Uninstallable -> `Uninstallable
+    |`No_sources,_ | _,`No_sources -> `No_sources
     |`Unknown,_ | _,`Unknown -> `Unknown
 
   let test_safe_string m =
@@ -149,6 +151,7 @@ module S = struct
     | `Unknown -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
     | `Ok -> Fmt.(pf ppf "%a" (styled `Green string) u)
     | `Uninstallable -> Fmt.(pf ppf "%a" string u)
+    | `No_sources -> Fmt.(pf ppf "%a" (styled `Blue string) u)
     | `Fail -> Fmt.(pf ppf "%a" (styled `Red (styled `Bold string)) u)
  
   let compilers ppf (m:metadata list) =
@@ -170,7 +173,7 @@ module S = struct
     ) OV.arches
 
   let variants ppf m =
-    let col = function `Uninstallable -> `White | `Unknown -> `Yellow | `Ok -> `Green | `Fail -> `Red in
+    let col = function `No_sources -> `Blue |`Uninstallable -> `White | `Unknown -> `Yellow | `Ok -> `Green | `Fail -> `Red in
     let run fn u = Fmt.(pf ppf "%a" (styled (col (fn m)) string) u) in
     run A.test_safe_string U.ss;
     run A.test_flambda U.flambda;
@@ -179,19 +182,22 @@ end
 
 type copts = {
   maintainers: string list;
-  all_versions: bool;
+  filters: [`All|`Failures|`Recent|`Variants];
   refresh: [`Local|`Poll|`Network];
 }
 
-let copts maintainers all_versions refresh =
-  { maintainers; all_versions; refresh }
+let copts maintainers filters refresh =
+  { maintainers; filters; refresh }
 
 let check_maintainer ~maintainers pkg =
   let open Obi.Index in
-  let l = List.map String.Ascii.lowercase (pkg.maintainers @ pkg.tags) in
-  List.exists (fun sub ->
-    List.exists (fun p ->
-      String.find_sub ~sub p <> None) l) maintainers
+  match maintainers with
+  | [] -> true
+  | _ ->
+    let l = List.map String.Ascii.lowercase (pkg.maintainers @ pkg.tags) in
+    List.exists (fun sub ->
+      List.exists (fun p ->
+        String.find_sub ~sub p <> None) l) maintainers
 
 let render_package_version ppf (version,metadata) =
   Fmt.(pf ppf "%14s  " version);
@@ -217,13 +223,13 @@ let render_package_logs ppf version metadata =
     List.iter print_endline (Wrapper.wrap w l)
   ) metadata.log
 
-let render_package ppf ~all_versions pkg =
+let render_package ppf ~filters pkg =
   let open Obi.Index in
-  match all_versions with
-  | true ->
+  match filters with
+  | `All | `Failures | `Variants (* TODO *)->
     Fmt.pf ppf "%s:\n%!" pkg.name;
     List.iter (render_package_version ppf) pkg.versions
-  | false ->
+  | `Recent ->
     let version = A.latest_version pkg in
     Fmt.pf ppf "%30s %!" pkg.name;
     render_package_version ppf version
@@ -237,14 +243,14 @@ let render_package_details ppf pkg =
     Fmt.(pf ppf "@\n");
   ) pkg.versions
 
-let show_status {maintainers; all_versions; refresh} () =
+let show_status {maintainers; filters; refresh} () =
   let open Obi.Index in
   Repos.init ~refresh () >>= fun pkgs ->
   let ppf = Fmt.stdout in
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter (fun pkg ->
     if check_maintainer ~maintainers pkg then
-      render_package ppf ~all_versions pkg
+      render_package ppf ~filters pkg
   ) pkgs;
   Ok ()
 
@@ -280,10 +286,11 @@ let copts_t =
     value & opt_all string []
     & info ["maintainer"; "m"] ~docv:"MAINTAINER" ~doc
   in
-  let all_versions =
-    let doc = "Show all versions of packages" in
+  let filters =
+    let doc = "Show different versions of packages" in
     let open Arg in
-    value & flag & info ["all-versions";"a"] ~docv:"ALL_VERSIONS" ~doc
+    let term = Arg.enum ["all",`All; "failures",`Failures; "recent",`Recent; "variants",`Variants] in
+    value & opt term `Failures & info ["filter";"f"] ~docv:"FILTERS" ~doc
   in
   let refresh =
     let doc = "How to query the network to refresh status logs" in
@@ -292,14 +299,14 @@ let copts_t =
     value & opt term `Poll & info ["refresh"] ~docv:"REFRESH_LOGS" ~doc
   in
   let open Term in
-  const copts $ maintainer $ all_versions $ refresh
+  const copts $ maintainer $ filters $ refresh
 
 let status_cmd =
-  let doc = "obi status" in
+  let doc = "obi status TODO" in
   let exits = Term.default_exits in
   let man =
     [ `S Manpage.s_description
-    ; `P "obi status." ]
+    ; `P "obi status TODO." ]
   in
   ( Term.(term_result (const show_status $ copts_t $ setup_logs))
   , Term.info "status" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
@@ -310,20 +317,39 @@ let logs_cmd =
   let pkg_t = Arg.(required & pos 0 (some string) None & info [] ~doc) in
   let man =
     [ `S Manpage.s_description
-    ; `P "obi logs." ]
+    ; `P "TODO" ]
   in
   ( Term.(term_result (const show_logs $ pkg_t $ copts_t $ setup_logs))
   , Term.info "logs" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 
 let default_cmd =
-  let doc = "obi" in
+  let doc = "opam 2.0 package manager continuous integration interface" in
   let sdocs = Manpage.s_common_options in
+  let man =
+    [ `S Manpage.s_description
+    ; `P "The $(tname) tool provides an interface to the opam 2.0 continuous
+  integration cluster, which regularly rebuilds the package repository across
+  a variety of OCaml compiler versions, operating system distributions and 
+  CPU architectures.  These builds are done regularly in remote infrastructure and
+  the results are pushed to a metadata repository where they are fetched by this
+  command to give you a summary of the status of your own packages."
+   ; `P "The $(i,opam-ci status) command shows a dashboard of the build results
+   across this matrix. Packages can be filtered by maintainer substrings or tag names in the
+    opam package description, so you see only those relevant to you.  Once you
+    find some errors, the $(i,opam-ci logs) command will show you the build errors
+    so you can fix them.  Finally, the $(i,opam-ci repro) command can generate
+    a Dockerfile of the precise build to reproduce the environment locally for you."
+   ; `P "To get started, try these commands with the maintainer argument replaced with your own information or tags:"
+   ; `P "opam-ci status -m org:mirage | less -R"; `Noblank
+   ; `P "opam-ci status -m anil --filter=all | less -R"; `Noblank
+   ; `P "opam-ci logs mirage-xen"
+   ; `P "See the $(b,--help) pages for the subcommands below for more detailed information."
+   ] in
   ( Term.(ret (const (fun _ -> `Help (`Pager, None)) $ pure ()))
-  , Term.info "obi" ~version:"v1.0.0" ~doc ~sdocs )
+  , Term.info "opam-ci" ~version:"v1.0.0" ~doc ~sdocs ~man)
 
 
 let cmds = [ status_cmd; logs_cmd ]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
-
