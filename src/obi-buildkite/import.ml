@@ -155,8 +155,13 @@ let pkg_metadata_of_batch logs_dir b =
       List.iter (fun t -> tags := t :: !tags) ts;
       (match res.code with
        |`Exited 0 -> Ok []
-       |_ ->
-           find_log logs_dir params rev name version) >>= fun log ->
+       |_ -> begin
+          match find_log logs_dir params rev name version with
+          | Ok log -> Ok log
+          | Error (`Msg e) ->
+              Logs.warn (fun l -> l "Error log not found for %s.%s (%a): %s" name version Bos.OS.Cmd.pp_status res.code e);
+              Ok [] end
+      ) >>= fun log ->
            let build_result =
              match res.code with
              | `Exited 20 -> `Uninstallable log
