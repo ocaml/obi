@@ -1,7 +1,7 @@
 (jbuild_version 1)
 
 (executables
- ((names (user))
+ ((names (main))
   (public_names (opam-ci))
   (libraries (obi bos cmdliner fmt.cli logs.fmt fmt.tty logs.cli rresult dockerfile-opam textwrap))
   (package opam-ci)
