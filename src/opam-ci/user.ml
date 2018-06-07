@@ -153,7 +153,7 @@ module S = struct
 
   let render_classify ppf fn m u =
     match fn m |> A.classify with
-    | `Unknown -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
+    | `Unknown -> Fmt.(pf ppf "%a" (styled `Underline string) u)
     | `Ok -> Fmt.(pf ppf "%a" (styled `Green string) u)
     | `Uninstallable -> Fmt.(pf ppf "%a" string u)
     | `Solver_failure -> Fmt.(pf ppf "%a" (styled `Underline (styled `Magenta string)) u)
@@ -183,7 +183,7 @@ module S = struct
     let col = function
       | `No_sources -> `Blue 
       | `Uninstallable -> `White 
-      | `Unknown -> `Yellow 
+      | `Unknown -> `Underline 
       | `Ok -> `Green 
       | `Depfail -> `Yellow
       | `Solver_failure -> `Magenta
