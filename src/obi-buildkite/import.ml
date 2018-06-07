@@ -178,6 +178,7 @@ let pkg_metadata_of_batch logs_dir b =
              match res.code with
              | `Exited 0 -> `Ok
              | `Exited 20 -> `Uninstallable log
+             | `Exited 40 -> `No_sources log
              | `Exited 60 -> `Solver_failure
              | `Signaled n -> `Fail ((n * (-1)),deps)
              | `Exited n when not (is_depfail pkg.name version deps) -> `Fail (n, deps)

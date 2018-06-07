@@ -74,9 +74,9 @@ module A = struct
     | None -> `Unknown
     | Some {build_result=`Ok} -> `Ok
     | Some {build_result=`Fail _} -> `Fail
-    | Some {build_result=`Depfail _} -> `Fail
+    | Some {build_result=`Depfail _} -> `Depfail
     | Some {build_result=`Uninstallable _} -> `Uninstallable
-    | Some {build_result=`Solver_failure} -> `Uninstallable
+    | Some {build_result=`Solver_failure} -> `Solver_failure
     | Some {build_result=`No_sources _} -> `No_sources
 
   let latest_version pkg =
@@ -92,7 +92,9 @@ module A = struct
     |`Fail, `Ok | `Ok, `Fail -> `Fail
     |`Ok, `Ok -> `Ok
     |`Fail, `Fail -> `Ok
+    |`Depfail,_ | _,`Depfail -> `Depfail
     |`Uninstallable,_ | _,`Uninstallable -> `Uninstallable
+    |`Solver_failure,_ | _,`Solver_failure -> `Solver_failure
     |`No_sources,_ | _,`No_sources -> `No_sources
     |`Unknown,_ | _,`Unknown -> `Unknown
 
@@ -154,8 +156,10 @@ module S = struct
     | `Unknown -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
     | `Ok -> Fmt.(pf ppf "%a" (styled `Green string) u)
     | `Uninstallable -> Fmt.(pf ppf "%a" string u)
+    | `Solver_failure -> Fmt.(pf ppf "%a" (styled `Underline (styled `Magenta string)) u)
     | `No_sources -> Fmt.(pf ppf "%a" (styled `Blue string) u)
     | `Fail -> Fmt.(pf ppf "%a" (styled `Red (styled `Bold string)) u)
+    | `Depfail -> Fmt.(pf ppf "%a" (styled `Yellow string) u)
  
   let compilers ppf (m:metadata list) =
     List.iter (fun ov ->
@@ -181,6 +185,8 @@ module S = struct
       | `Uninstallable -> `White 
       | `Unknown -> `Yellow 
       | `Ok -> `Green 
+      | `Depfail -> `Yellow
+      | `Solver_failure -> `Magenta
       | `Fail -> `Red in
     let run fn u = Fmt.(pf ppf "%a" (styled (col (fn m)) string) u) in
     run A.test_safe_string U.ss;
