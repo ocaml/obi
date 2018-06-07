@@ -187,7 +187,12 @@ module S = struct
     ) OV.arches
 
   let variants ppf m =
-    let col = function `No_sources -> `Blue |`Uninstallable -> `White | `Unknown -> `Yellow | `Ok -> `Green | `Fail -> `Red in
+    let col = function
+      | `No_sources -> `Blue 
+      | `Uninstallable -> `White 
+      | `Unknown -> `Yellow 
+      | `Ok -> `Green 
+      | `Fail -> `Red in
     let run fn u = Fmt.(pf ppf "%a" (styled (col (fn m)) string) u) in
     run A.test_safe_string U.ss;
     run A.test_flambda U.flambda;
@@ -195,9 +200,12 @@ module S = struct
 end
 
 type copts = {
+  refresh: [`Local|`Poll|`Network];
+}
+
+type filters = {
   maintainers: string list;
   filters: [`All|`Failures|`Recent|`Variants of [ `Flambda | `RC | `SS ] ];
-  refresh: [`Local|`Poll|`Network];
 }
 
 type params = {
@@ -206,8 +214,11 @@ type params = {
   arch: OV.arch option;
 }
 
-let copts maintainers filters refresh =
-  { maintainers; filters; refresh }
+let filters maintainers filters =
+  { maintainers; filters }
+
+let copts refresh =
+  { refresh }
 
 let params distro ov arch =
   { distro ; ov; arch }
@@ -276,7 +287,7 @@ let render_package_details ppf pkg =
     Fmt.(pf ppf "@\n");
   ) pkg.versions
 
-let show_status {maintainers; filters; refresh} () =
+let show_status {refresh} {maintainers; filters} () =
   let open Obi.Index in
   Repos.init ~refresh () >>= fun pkgs ->
   let ppf = Fmt.stdout in
@@ -300,39 +311,39 @@ let show_logs pkg {refresh} {distro;ov;arch} () =
 
 open Cmdliner
 let setup_logs =
-  let setup_log style_renderer level =
-    let style_renderer = match style_renderer with
-      | None -> `Ansi_tty
-      | Some t -> t in
-    Fmt_tty.setup_std_outputs ~style_renderer ();
+  let setup_log level =
+    Fmt_tty.setup_std_outputs ~style_renderer:`Ansi_tty ();
     Logs.set_level level;
     Logs.set_reporter (Logs_fmt.reporter ()) in
   let global_option_section = "COMMON OPTIONS" in
   Term.(const setup_log
-    $ Fmt_cli.style_renderer ~docs:global_option_section ()
     $ Logs_cli.level ~docs:global_option_section ())
 
 let copts_t =
+  let docs = Manpage.s_common_options in
+  let refresh =
+    let doc = "How to refresh status logs. $(docv) defaults to $(i,poll) which pulls from GitHub every hour. $(i,network) will force the metadata to be pulled, and $(i,local) will only use the cached version locally." in
+    let open Arg in
+    let term = Arg.enum ["local",`Local;"poll",`Poll;"network",`Network] in
+    value & opt term `Poll & info ["refresh"] ~docv:"REFRESH_LOGS" ~doc ~docs
+  in
+  let open Term in
+  const copts $ refresh
+
+let filter_t =
   let maintainer =
     let doc = "Match packages via a case-insensitive substring check on the $(b,maintainer) and $(b,tags) fields in the opam metadata. $(docv) can be repeated multiple times to include more filters." in
     let open Arg in
     value & opt_all string []
     & info ["maintainer"; "m"] ~docv:"MAINTAINER" ~doc
   in
-  let filters =
+  let filters_t =
     let doc = "Filter the list of packages displayed. $(docv) defaults to $(i,failures) to show all packages with errors. $(i,recent) will show results for the latest version of each package. $(i,variants) will list packages that regress with a compiler variant such as safe-string or flambda. $(i,variants:fl), $(i,variants:rc) and $(i,variants:ss) will show failures for just the flambda, release-candidate or safe-string tests respectively. $(i,all) will show all known results for all versions including successes." in
     let open Arg in
     let term = Arg.enum ["all",`All; "failures",`Failures; "recent",`Recent; "variants:ss",`Variants `SS; "variants:fl", `Variants `Flambda; "variants:rc", `Variants `RC] in
     value & opt term `Failures & info ["filter";"f"] ~docv:"FILTERS" ~doc
   in
-  let refresh =
-    let doc = "How to refresh status logs. $(docv) defaults to $(i,poll) which pulls from GitHub every hour. $(i,network) will force the metadata to be pulled, and $(i,local) will only use the cached version locally." in
-    let open Arg in
-    let term = Arg.enum ["local",`Local;"poll",`Poll;"network",`Network] in
-    value & opt term `Poll & info ["refresh"] ~docv:"REFRESH_LOGS" ~doc
-  in
-  let open Term in
-  const copts $ maintainer $ filters $ refresh
+  Term.(const filters $ maintainer $ filters_t)
 
 let param_t =
   let distro =
@@ -371,8 +382,8 @@ let status_cmd =
     ; `I ("$(b,release-candidate)","The $(i,flag) icon is for packages that fail to compile with the latest release candidate of OCaml; this is useful to figure out how much of the ecosystem works with a soon-to-be-released compiler.")
     ]
   in
-  ( Term.(term_result (const show_status $ copts_t $ setup_logs))
-  , Term.info "status" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+  ( Term.(term_result (const show_status $ copts_t $ filter_t $ setup_logs))
+  , Term.info "status" ~doc ~exits ~man )
 
 let logs_cmd =
   let doc = "obi logs" in
@@ -383,7 +394,7 @@ let logs_cmd =
     ; `P "TODO" ]
   in
   ( Term.(term_result (const show_logs $ pkg_t $ copts_t $ param_t $ setup_logs))
-  , Term.info "logs" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+  , Term.info "logs" ~doc ~exits ~man )
 
 
 let default_cmd =
@@ -399,13 +410,18 @@ let default_cmd =
   command to give you a summary of the status of your own packages."
    ; `P "The $(i,opam-ci status) command shows a dashboard of the build results
    across this matrix. Packages can be filtered by maintainer substrings or tag names in the
-    opam package description, so you see only those relevant to you.  Once you
-    find some errors, the $(i,opam-ci logs) command will show you the build errors
+    opam package description, so you see only those relevant to you."
+   ; `P "Once you find some errors, the $(i,opam-ci logs) command will show you the build errors
     so you can fix them.  Finally, the $(i,opam-ci repro) command can generate
     a Dockerfile of the precise build to reproduce the environment locally for you."
    ; `P "To get started, try these commands with the maintainer argument replaced with your own information or tags:"
-   ; `P "opam-ci status -m org:mirage | less -R"; `Noblank
-   ; `P "opam-ci status -m anil --filter=all | less -R"; `Noblank
+   ; `P "# show all the failing MirageOS packages"; `Noblank
+   ; `P "opam-ci status -m org:mirage | less -R"
+   ; `P "# show all the packages maintained by anil@recoil.org"; `Noblank
+   ; `P "opam-ci status -m anil@recoil.org --filter=all | less -R"
+   ; `P "# show all the packages failing on the latest RC of the OCaml compiler"; `Noblank
+   ; `P "opam-ci status --filter=variants:rc | less -R"
+   ; `P "# display all failure logs for the mirage-xen package"; `Noblank
    ; `P "opam-ci logs mirage-xen"
    ; `P "See the $(b,--help) pages for the subcommands below for more detailed information."
    ] in
