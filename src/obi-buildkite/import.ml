@@ -40,7 +40,6 @@ module Rev = struct
   let compare a b = compare b.date a.date
 end
 
-
 let ps fn v = Sexplib.Sexp.to_string_hum (fn v)
 
 let h = Hashtbl.create 10
@@ -141,6 +140,15 @@ let find_latest_results srevs params =
 
 let live_revs = Hashtbl.create 7
 
+let get_opam_actions j =
+  try
+    Ezjsonm.from_string j |>
+    Obi_support.OpamJsonActions.installs
+  with _ -> []
+
+let is_depfail name version actions =
+  List.exists (fun (n,v,r) -> name = n && version = v && r = `Skipped) actions
+
 let pkg_metadata_of_batch logs_dir b =
   let open Obi.Builds in
   (* register this revision as a live one so we dont delete it *)
@@ -156,6 +164,7 @@ let pkg_metadata_of_batch logs_dir b =
       find_tags name >>= fun ts ->
       ms := maintainer :: !ms;
       List.iter (fun t -> tags := t :: !tags) ts;
+      let deps = get_opam_actions res.actions in
       (match res.code with
        |`Exited 0 -> Ok []
        |_ -> begin
@@ -167,8 +176,13 @@ let pkg_metadata_of_batch logs_dir b =
       ) >>= fun log ->
            let build_result =
              match res.code with
+             | `Exited 0 -> `Ok
              | `Exited 20 -> `Uninstallable log
-             | n -> (n :> Obi.Index.result) in
+             | `Exited 60 -> `Solver_failure
+             | `Signaled n -> `Fail ((n * (-1)),deps)
+             | `Exited n when not (is_depfail pkg.name version deps) -> `Fail (n, deps)
+             | `Exited n -> `Depfail deps
+           in
            let params = { Obi.Index.arch=params.arch; ov=params.ov; distro=params.distro } in
            let metadata = [ { Obi.Index.params; rev; build_result; start_time=res.start_time; end_time=res.end_time; log } ] in
       Ok (version, metadata)

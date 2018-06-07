@@ -92,6 +92,6 @@ let init ?(refresh=`Poll) () =
     Logs.debug (fun l -> l "Found metadata for %d packages" (List.length pkgs));
     Ok pkgs
   with exn ->
-    Logs.err (fun l -> l "Error parsing upstream metadata. You probably need to run `opam update -u` to get the latest version of opam-ci that is compatible with the log format.");
-    Error (`Msg "Unable to parse logs metadata")
+    let err = "Error parsing upstream metadata.\nYou probably need to run `opam update -u` to get the latest version of opam-ci that is compatible with the log format.\nIf that does not help, then please report an issue at https://github.com/avsm/obi/issues" in
+    Error (`Msg err)
 

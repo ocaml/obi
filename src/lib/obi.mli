@@ -17,11 +17,14 @@
 module Index : sig
   type maintainers = (string * string) list [@@deriving sexp]
   type tags = (string * string list) list [@@deriving sexp]
+  type deps = (string * string * [ `Fail | `Ok | `Skipped ]) list [@@deriving sexp]
   type result =  [
-    | `Signaled of int
-    | `Exited of int
+    | `Ok
+    | `Fail of int * deps
+    | `Depfail of deps
     | `Uninstallable of string list
     | `No_sources of string list
+    | `Solver_failure
   ] [@@deriving sexp]
   type params = {
     arch: Dockerfile_distro.arch;

@@ -72,14 +72,12 @@ module A = struct
   let classify m =
     match m with 
     | None -> `Unknown
-    | Some {build_result=`Exited 0} -> `Ok
-    | Some {build_result=`Exited _} -> `Fail
-    | Some {build_result=`Signaled _} -> `Fail
+    | Some {build_result=`Ok} -> `Ok
+    | Some {build_result=`Fail _} -> `Fail
+    | Some {build_result=`Depfail _} -> `Fail
     | Some {build_result=`Uninstallable _} -> `Uninstallable
+    | Some {build_result=`Solver_failure} -> `Uninstallable
     | Some {build_result=`No_sources _} -> `No_sources
-
-  let is_success m =
-    m.build_result = `Exited 0
 
   let latest_version pkg =
     List.sort (fun a b ->
@@ -121,15 +119,6 @@ module A = struct
   let any_variant_fails m =
     List.exists (fun ty -> has_variant_fails ty m) [`Flambda;`SS;`RC]
 
-  (* Distros that failed where the Debian version didnt *)
-  let find_distro_fails m =
-    match find ~distro:base_distro m with
-    | Some m' when is_success m' ->
-      List.fold_left (fun acc distro ->
-        match find ~distro m with
-        | Some m when not (is_success m) -> distro::acc
-        | _ -> acc) [] other_distros
-    | _ -> []
 end
 
 module S = struct

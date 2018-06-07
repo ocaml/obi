@@ -10,6 +10,7 @@ tags: ["org:mirage" "org:ocamllabs"]
 available: [ ocaml-version >= "4.05.0"]
 depends: [
   "jbuilder" {build & >="1.0+beta17"}
+  "obi-support"
   "dockerfile-opam"
   "dockerfile-cmd"
   "ezjsonm"

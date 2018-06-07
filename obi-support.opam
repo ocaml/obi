@@ -6,17 +6,11 @@ doc: "http://avsm.github.io/avsm/obi/doc"
 license: "ISC"
 dev-repo: "https://github.com/avsm/obi.git"
 bug-reports: "https://github.com/avsm/obi/issues"
-tags: ["org:ocamllabs" "flags:plugin" ]
+tags: ["org:mirage" "org:ocamllabs"]
 available: [ ocaml-version >= "4.05.0"]
 depends: [
   "jbuilder" {build & >="1.0+beta17"}
-  "obi"
-  "bos"
-  "cmdliner"
-  "fmt"
-  "logs"
-  "rresult"
-  "textwrap"
+  "ezjsonm"
 ]
 build: [
   ["jbuilder" "subst" "-p" name "--name" name] {pinned}

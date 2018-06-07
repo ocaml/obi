@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(executables
+ ((names (test))
+  (libraries (alcotest obi-support))))
+
+(alias
+ ((name runtest)
+  (deps (test.exe owl-fail.json))
+  (action (run ${exe:test.exe}))))
