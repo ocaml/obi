@@ -11,8 +11,7 @@ RUN sudo apt-get update && sudo apt-get -y install m4 pkg-config
 RUN opam switch 4.06
 COPY . /home/opam/src/
 RUN sudo chown -R opam /home/opam/src
-RUN opam pin add -n --dev dockerfile-opam
-RUN opam pin add -n --dev ocaml-version
+RUN git -C /home/opam/opam-repository pull origin master && opam update
 RUN opam pin add -n --dev yaml
 RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build

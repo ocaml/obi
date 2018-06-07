@@ -308,4 +308,3 @@ let show_logs pkg {refresh} {distro;ov;arch} () =
   | Some pkg ->
      render_package_details ppf pkg;
      Ok ()
-
