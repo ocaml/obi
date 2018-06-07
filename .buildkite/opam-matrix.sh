@@ -44,5 +44,6 @@ else
   build "alpine-3.7" "4.06" "amd64"
   build "ubuntu-18.04" "4.06" "amd64"
   build "fedora-28" "4.06" "amd64"
+  build "opensuse-42.3" "4.06" "amd64"
 fi
 index
