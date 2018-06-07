@@ -93,7 +93,7 @@ module A = struct
     match ss', uss' with
     |`Fail, `Ok | `Ok, `Fail -> `Fail
     |`Ok, `Ok -> `Ok
-    |`Fail, `Fail -> `Fail
+    |`Fail, `Fail -> `Ok
     |`Uninstallable,_ | _,`Uninstallable -> `Uninstallable
     |`No_sources,_ | _,`No_sources -> `No_sources
     |`Unknown,_ | _,`Unknown -> `Unknown
@@ -107,16 +107,19 @@ module A = struct
   let test_ocaml406to7 m =
     test_two_versions ov_stable ov_rc m
 
+  let is_fail = function |`Fail |`No_sources -> true | _ -> false
   (* There are any failures *)
   let has_fails m =
-    List.exists (fun m ->
-      match classify (Some m) with
-      | `Fail | `No_sources -> true
-      | `Ok | `Uninstallable | `Unknown -> false) m
+    List.exists (fun m -> classify (Some m) |> is_fail) m
 
-  let has_variant_fails m =
-    List.filter (fun m -> OV.extra m.params.ov <> None) m |>
-    has_fails
+  let has_variant_fails ty m =
+    match ty with
+    |`Flambda -> test_flambda m |> is_fail
+    |`SS -> test_safe_string m |> is_fail
+    |`RC -> test_ocaml406to7 m |> is_fail
+
+  let any_variant_fails m =
+    List.exists (fun ty -> has_variant_fails ty m) [`Flambda;`SS;`RC]
 
   (* Distros that failed where the Debian version didnt *)
   let find_distro_fails m =
@@ -193,7 +196,7 @@ end
 
 type copts = {
   maintainers: string list;
-  filters: [`All|`Failures|`Recent|`Variants];
+  filters: [`All|`Failures|`Recent|`Variants of [ `Flambda | `RC | `SS ] ];
   refresh: [`Local|`Poll|`Network];
 }
 
@@ -255,8 +258,11 @@ let render_package ppf ~filters pkg =
   | `Failures ->
     List.filter (fun (_, m) -> A.has_fails m) pkg.versions |>
     render_packages ppf pkg.name
-  | `Variants ->
-    List.filter (fun (_, m) -> A.has_variant_fails m) pkg.versions |>
+  | `All_variants ->
+    List.filter (fun (_, m) -> A.any_variant_fails m) pkg.versions |>
+    render_packages ppf pkg.name
+  | `Variants ty ->
+    List.filter (fun (_, m) -> A.has_variant_fails ty m) pkg.versions |>
     render_packages ppf pkg.name
   | `Recent ->
     render_packages ppf pkg.name [A.latest_version pkg]
@@ -281,7 +287,7 @@ let show_status {maintainers; filters; refresh} () =
   ) pkgs;
   Ok ()
 
-let show_logs pkg {refresh} {distro} () =
+let show_logs pkg {refresh} {distro;ov;arch} () =
   let open Obi.Index in
   (* TODO split on version *)
   let ppf = Fmt.stdout in
@@ -314,9 +320,9 @@ let copts_t =
     & info ["maintainer"; "m"] ~docv:"MAINTAINER" ~doc
   in
   let filters =
-    let doc = "Filter the list of packages displayed. $(docv) defaults to $(i,failures) to show all packages with errors. $(i,recent) will show results for the latest version of each package. $(i,variants) will list packages that regress with a compiler variant such as safe-string or flambda. $(i,all) will show all known results for all versions including successes." in
+    let doc = "Filter the list of packages displayed. $(docv) defaults to $(i,failures) to show all packages with errors. $(i,recent) will show results for the latest version of each package. $(i,variants) will list packages that regress with a compiler variant such as safe-string or flambda. $(i,variants:fl), $(i,variants:rc) and $(i,variants:ss) will show failures for just the flambda, release-candidate or safe-string tests respectively. $(i,all) will show all known results for all versions including successes." in
     let open Arg in
-    let term = Arg.enum ["all",`All; "failures",`Failures; "recent",`Recent; "variants",`Variants] in
+    let term = Arg.enum ["all",`All; "failures",`Failures; "recent",`Recent; "variants:ss",`Variants `SS; "variants:fl", `Variants `Flambda; "variants:rc", `Variants `RC] in
     value & opt term `Failures & info ["filter";"f"] ~docv:"FILTERS" ~doc
   in
   let refresh =
