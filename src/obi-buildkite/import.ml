@@ -45,7 +45,7 @@ let ps fn v = Sexplib.Sexp.to_string_hum (fn v)
 let h = Hashtbl.create 10
 let by_param = Hashtbl.create 10
 let revs = Hashtbl.create 10
-let maintainers = Hashtbl.create 100
+let maintainers : (string, string list) Hashtbl.t = Hashtbl.create 100
 let tags = Hashtbl.create 100
 
 let load_maintainers dir =
@@ -80,15 +80,6 @@ let info_of_rev tdir rev =
    String.trim subj |> fun subject ->
    Ok {Rev.rev; date; subject}
 
-let find_maintainer pkg =
-  match Hashtbl.find_opt maintainers pkg with
-  | Some m -> Ok m
-  | None ->
-    OS.Cmd.(run_out (Cmd.(v "opam" % "info" % "-f" % "maintainer:" % pkg)) |> to_string) >>= fun maintainer ->
-    let m = String.trim maintainer in
-    Hashtbl.add maintainers pkg m;
-    Ok m
-
 let parse_string_list buf =
   let open Scanf in
   (* TODO Heuristic until https://github.com/ocaml/opam/issues/3365 is resolved *)
@@ -97,6 +88,15 @@ let parse_string_list buf =
      let rec fn ic = kscanf ic (fun _ _ -> []) "%S %r" fn (fun a b -> a::b) in
      fn (Scanning.from_string buf)
   | None -> [buf]
+
+let find_maintainers pkg =
+  match Hashtbl.find_opt maintainers pkg with
+  | Some m -> Ok m
+  | None ->
+    OS.Cmd.(run_out (Cmd.(v "opam" % "info" % "-f" % "maintainer:" % pkg)) |> to_string) >>= fun maintainer ->
+    let m = String.trim maintainer |> parse_string_list in
+    Hashtbl.add maintainers pkg m;
+    Ok m
 
 let find_tags pkg =
   match Hashtbl.find_opt tags pkg with
@@ -160,9 +160,9 @@ let pkg_metadata_of_batch logs_dir b =
     let ms = ref [] in
     let tags = ref [] in 
     C.map (fun (version, res) ->
-      find_maintainer name >>= fun maintainer ->
+      find_maintainers name >>= fun maintainers ->
       find_tags name >>= fun ts ->
-      ms := maintainer :: !ms;
+      ms := maintainers @ !ms;
       List.iter (fun t -> tags := t :: !tags) ts;
       let deps = get_opam_actions res.actions in
       (match res.code with

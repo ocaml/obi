@@ -47,7 +47,7 @@ end
 
 module Index = struct
 
-  type maintainers = (string * string) list [@@deriving sexp]
+  type maintainers = (string * string list) list [@@deriving sexp]
 
   type tags = (string * string list) list [@@deriving sexp]
 
