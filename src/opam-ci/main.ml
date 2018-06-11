@@ -99,7 +99,12 @@ let logs_cmd =
   let pkg_t = Arg.(required & pos 0 (some string) None & info [] ~doc) in
   let man =
     [ `S Manpage.s_description
-    ; `P "TODO" ]
+    ; `P "The logs view will show the build details available for the various configuration combinations.  To start, you can try to show the results for a single package:"
+    ; `P "opam-ci logs cdrom"
+    ; `P "If just one failure is found, then the build logs are shown for that failure. If there is more than one failure, the output will give you a more precise command line to enter to select just one of the failures.  For example:"
+    ; `P "opam-ci logs cdrom.0.9.1 --compiler=4.06 --arch=amd64 --distro=alpine-3.7"
+    ; `P "There will often be repeat failures, so just pick one of them and hopefully many of the other errors will be related."
+    ]
   in
   ( Term.(term_result (const show_logs $ pkg_t $ copts_t $ param_t $ setup_logs))
   , Term.info "logs" ~doc ~exits ~man )
