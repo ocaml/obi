@@ -11,6 +11,7 @@ available: [ ocaml-version >= "4.05.0"]
 depends: [
   "jbuilder" {build & >="1.0+beta17"}
   "ezjsonm"
+  "obi"
 ]
 build: [
   ["jbuilder" "subst" "-p" name "--name" name] {pinned}
