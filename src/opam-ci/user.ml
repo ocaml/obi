@@ -55,7 +55,7 @@ module A = struct
   let ov_stable_uss = OV.of_string_exn "4.06+default-unsafe-string"
   let ov_stable_fl = OV.of_string_exn "4.06+flambda"
   let base_distro = `Debian `V9
-  let other_distros = [`Alpine `V3_7; `Ubuntu `V18_04; `Fedora `V28]
+  let other_distros = [`Alpine `V3_7; `Ubuntu `V18_04; `Fedora `V28; `OpenSUSE `V42_3 ]
   let distros = base_distro :: other_distros
 
   let find ?(distro=base_distro) ?(ov=ov_stable) ?(arch=`X86_64) (m:metadata list) =

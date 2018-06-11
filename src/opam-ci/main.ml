@@ -81,7 +81,7 @@ let status_cmd =
     [ `S Manpage.s_description
     ; `P "The status view shows a panel of icons that represent different combinations of ways to build opam packages. From left to right, these are:"
     ; `I ("$(b,Compiler)", "The circled numbers represent OCaml compiler versions (a circled 6 is OCaml 4.06, a circled 7 is 4.07, and so on). ")
-    ; `I ("$(b,Distro)","The square letters indicate different OS distributions. $(i,D) is Debian, $(i,F) is Fedora, $(i,A) is Alpine, $(i,U) is Ubuntu and $(i,O) is OpenSUSE.")
+    ; `I ("$(b,Distro)","The square letters indicate different OS distributions. $(i,D) is Debian, $(i,F) is Fedora, $(i,A) is Alpine, $(i,U) is Ubuntu and $(i,S) is OpenSUSE.")
     ; `I ("$(b,CPU Architecture)", "The small circled letters represent different CPU architectures. $(i,x) represents x86_64, $(i,a) is arm64 and $(i,p) is PowerPC64LE.")
     ; `P "Some compiler variants are also tested to track down specific problems, shown by the icons to the far right of the display."
     ; `I ("$(b,safe-string)", "The $(i,ss) icon is for 'safe-string' failures, which would happen in OCaml 4.06 due to the switch to immutable strings.")
