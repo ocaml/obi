@@ -87,6 +87,7 @@ let status_cmd =
     ; `I ("$(b,safe-string)", "The $(i,ss) icon is for 'safe-string' failures, which would happen in OCaml 4.06 due to the switch to immutable strings.")
     ; `I ("$(b,flambda)","The $(i,fl) icon is for packages that fail to compile with the flambda variant of the compiler.")
     ; `I ("$(b,release-candidate)","The $(i,flag) icon is for packages that fail to compile with the latest release candidate of OCaml; this is useful to figure out how much of the ecosystem works with a soon-to-be-released compiler.")
+    ; `P "The colours indicate the result of the build: $(i,white) indicates the package was not built due to constraints, $(i,green) is a successful build, $(i, yellow) indicates the build was skipped due to a dependency failure, $(i, red) is a direct build failure of that package, and $(i,magenta) and $(i,blue) indicate package metadata errors such as a failure of the solver to find a solution or the package sources being unavailable."
     ]
   in
   ( Term.(term_result (const show_status $ copts_t $ filter_t $ setup_logs))
