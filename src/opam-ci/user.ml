@@ -338,6 +338,7 @@ let show_status {refresh} {maintainers; filters} () =
     if check_maintainer ~maintainers pkg then
       render_package ppf ~filters pkg
   ) pkgs;
+  Fmt.(pf ppf "@\nTry '%a' to see details of build failures for each package.@\n" (styled `Bold string) "opam-ci logs <pkg>");
   Ok ()
 
 let show_logs pkg {refresh} params () =
