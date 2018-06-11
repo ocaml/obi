@@ -29,6 +29,7 @@ module Index : sig
     | `No_sources of string list
     | `Solver_failure
   ] [@@deriving sexp]
+  val pp_result : Format.formatter -> result -> unit
   type params = {
     arch: Dockerfile_distro.arch;
     distro : Dockerfile_distro.t;

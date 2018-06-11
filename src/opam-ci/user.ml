@@ -240,14 +240,14 @@ let render_package_version ppf (version,metadata) =
   S.variants ppf metadata;
   Fmt.(pf ppf "@\n%!")
 
-let render_package_logs ppf version metadata =
+let render_package_logs ppf name version metadata =
   let open Obi.Index in
   let p = metadata.params in
+  Fmt.(pf ppf "@\n%a %a %s %s %s (%a):@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) (name ^ "." ^ version)
+     (OV.to_string p.ov) (D.human_readable_string_of_distro p.distro) (OV.string_of_arch p.arch) pp_result metadata.build_result);
   match metadata.log with
-  | [] -> ()
+  | [] -> Fmt.(pf ppf "<no logs available>@\n")
   | logs ->
-    Fmt.(pf ppf "@\n%a %a %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
-     (OV.to_string p.ov) (D.human_readable_string_of_distro p.distro) (OV.string_of_arch p.arch) );
   let w = Wrapper.make ~initial_indent:" " ~subsequent_indent:" " ~drop_whitespace:true 100 in
   List.iter (fun l ->
     List.iter (fun s -> Fmt.pf ppf "%s@\n" s) (Wrapper.wrap w l)
@@ -310,9 +310,9 @@ let render_package_details ppf pkg name version {distro; ov; arch} =
       Fmt.(pf ppf "%a: No failures found with these constraints\n%!" (styled `Bold string) name)
   | 1 ->
       List.iter (fun (version, m) ->
-        List.iter (render_package_logs ppf version) m;
+        List.iter (render_package_logs ppf name version) m;
         List.iter (fun m ->
-          Fmt.(pf ppf "@\n%a %a Dockerfile for %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
+          Fmt.(pf ppf "@\n%a %a Dockerfile for %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) (name ^ "." ^ version)
      (OV.to_string m.params.ov) (D.human_readable_string_of_distro m.params.distro) (OV.string_of_arch m.params.arch) );
           let dfile =
             let open Dockerfile in

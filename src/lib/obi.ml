@@ -62,6 +62,16 @@ module Index = struct
     | `Solver_failure
   ] [@@deriving sexp]
 
+  let pp_result ppf result =
+    let open Format in
+    match result with
+    | `Ok -> pp_print_string ppf "ok"
+    | `Fail (exit, deps) -> pp_print_string ppf "exit code "; pp_print_int ppf exit
+    | `Depfail deps -> pp_print_string ppf "dependency failed"
+    | `Uninstallable sl -> pp_print_string ppf "uninstallable due to constraints"
+    | `No_sources sl -> pp_print_string ppf "unable to fetch package sources"
+    | `Solver_failure -> pp_print_string ppf "internal opam solver failure"
+
   type params = {
     arch: Dockerfile_distro.arch;
     distro : Dockerfile_distro.t;
