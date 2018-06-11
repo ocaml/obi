@@ -1,4 +1,4 @@
-module O = Obi_support.OpamJsonActions
+module O = Obi.OpamJsonActions
 
 let test_owl () =
   open_in "owl-fail.json" |> Ezjsonm.from_channel |>

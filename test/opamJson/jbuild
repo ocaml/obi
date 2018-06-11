@@ -2,7 +2,7 @@
 
 (executables
  ((names (test))
-  (libraries (alcotest obi-support))))
+  (libraries (alcotest obi))))
 
 (alias
  ((name runtest)
