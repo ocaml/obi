@@ -32,6 +32,8 @@ if [ "$ARCH" == "arm64" ]; then
   build "debian-9" "4.06" "arm64"
 elif [ "$ARCH" == "ppc64le" ]; then
   build "debian-9" "4.06" "ppc64le"
+elif [ "$DISTRO" != "" ]; then
+  build $DISTRO "4.06" "amd64"
 else
   build "debian-9" "4.08" "amd64"
   build "debian-9" "4.07" "amd64"

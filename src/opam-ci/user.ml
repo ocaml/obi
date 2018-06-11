@@ -195,12 +195,12 @@ module S = struct
 end
 
 type copts = {
-  refresh: [`Local|`Poll|`Network];
+  refresh: [`Local| `Poll| `Network];
 }
 
 type filters = {
   maintainers: string list;
-  filters: [`All|`Failures|`Recent|`Variants of [ `Flambda | `RC | `SS ] ];
+  filters: [`All| `Failures| `Recent| `Variants of [ `Flambda | `RC | `SS ] ];
 }
 
 type params = {
