@@ -108,6 +108,7 @@ module A = struct
     test_two_versions ov_stable ov_rc m
 
   let is_fail = function |`Fail |`No_sources -> true | _ -> false
+
   (* There are any failures *)
   let has_fails m =
     List.exists (fun m -> classify (Some m) |> is_fail) m
@@ -249,7 +250,7 @@ let render_package_logs ppf version metadata =
      (OV.to_string p.ov) (D.human_readable_string_of_distro p.distro) (OV.string_of_arch p.arch) );
   let w = Wrapper.make ~initial_indent:" " ~subsequent_indent:" " ~drop_whitespace:true 100 in
   List.iter (fun l ->
-    List.iter print_endline (Wrapper.wrap w l)
+    List.iter (fun s -> Fmt.pf ppf "%s@\n" s) (Wrapper.wrap w l)
   ) metadata.log
 
 let render_packages ppf name pkgs =
@@ -273,14 +274,50 @@ let render_package ppf ~filters pkg =
   | `Recent ->
     render_packages ppf pkg.name [A.latest_version pkg]
 
-let render_package_details ppf pkg =
+let render_package_details ppf pkg name version {distro; ov; arch} =
   let open Obi.Index in
-  Fmt.(pf ppf "%a:@\n" (styled `Bold string) pkg.name);
-  List.iter (fun (version, metadata) ->
-    render_package_version ppf (version, metadata);
-    List.iter (render_package_logs ppf version) metadata;
-    Fmt.(pf ppf "@\n");
-  ) pkg.versions
+  (* Determine how many results match the result set *)
+  let ms = List.fold_left (fun acc (v, ml) ->
+    let metas = List.filter (fun m ->
+      let distro_ok =
+        match distro with
+        | None -> true
+        | Some d when d = m.params.distro -> true
+        | Some _ -> false in
+      let ov_ok =
+        match ov with
+        | None -> true
+        | Some ov when ov = m.params.ov -> true
+        | Some _ -> false in
+      let arch_ok =
+        match arch with
+        | None -> true
+        | Some arch when arch = m.params.arch -> true
+        | Some _ -> false in
+      let is_err =
+        match m.build_result with
+        | `Ok -> false
+        | `Uninstallable _ -> false
+        | _ -> true in
+    is_err && arch_ok && ov_ok && distro_ok) ml in
+    match version with
+    | None -> (v,metas)::acc 
+    | Some ver when ver = v -> (v,metas)::acc
+    | Some _ -> acc) [] pkg.versions in
+  let total_res = List.fold_left (fun a (_,ms) -> List.length ms + a) 0 ms in
+  match total_res with
+  | 0  ->
+      Fmt.(pf ppf "%a: No failures found with these constraints\n%!" (styled `Bold string) name)
+  | 1 ->
+      List.iter (fun (version, metadata) ->
+        List.iter (render_package_logs ppf version) metadata
+      ) ms
+  | _ ->
+      Fmt.(pf ppf "%a: multiple build failures found with different configuration parameters.@\nPlease refine the command to select exactly one of the following:@\n" (styled `Bold string) name);
+      List.iter (fun (version, ms) ->
+        List.iter (fun m ->
+          Fmt.(pf ppf "  opam-ci logs %s.%s --compiler=%s --arch=%s --distro=%s\n%!" name version (OV.to_string m.params.ov) (OV.string_of_arch m.params.arch) (D.tag_of_distro m.params.distro))
+        ) ms) ms
 
 let show_status {refresh} {maintainers; filters} () =
   let open Obi.Index in
@@ -293,13 +330,18 @@ let show_status {refresh} {maintainers; filters} () =
   ) pkgs;
   Ok ()
 
-let show_logs pkg {refresh} {distro;ov;arch} () =
+let show_logs pkg {refresh} params () =
   let open Obi.Index in
-  (* TODO split on version *)
+  let name, version =
+    match String.cut ~sep:"." pkg with
+    | None -> pkg, None (* No version string *)
+    | Some (name, version) -> name, Some version
+  in
   let ppf = Fmt.stdout in
   Repos.init ~refresh () >>= fun pkgs ->
-  match List.find_opt (fun p -> p.name = pkg) pkgs with
-  | None -> Error (`Msg "Package not found")
+  match List.find_opt (fun p -> p.name = name) pkgs with
+  | None -> Error (`Msg (Fmt.strf "Package %s not found" pkg))
   | Some pkg ->
-     render_package_details ppf pkg;
+     render_package_details ppf pkg name version params;
      Ok ()
+
