@@ -3,3 +3,4 @@ _build
 *.install
 .DS_Store
 .*.swp
+_opam
