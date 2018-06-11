@@ -143,7 +143,7 @@ let live_revs = Hashtbl.create 7
 let get_opam_actions j =
   try
     Ezjsonm.from_string j |>
-    Obi_support.OpamJsonActions.installs
+    Obi.OpamJsonActions.installs
   with _ -> []
 
 let is_depfail name version actions =

@@ -1,7 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name obi_support)
-  (public_name obi-support)
-  (libraries (obi astring rresult dockerfile-opam sexplib ezjsonm fmt))
- ))

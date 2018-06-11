@@ -13,7 +13,6 @@ get by:
 
 ```
 opam pin add -n obi https://github.com/avsm/obi.git
-opam pin add -n obi-support https://github.com/avsm/obi.git
 opam pin add opam-ci https://github.com/avsm/obi.git
 ```
 

@@ -85,4 +85,4 @@ module Index = struct
 end
 
 module VersionCompare = VersionCompare
-
+module OpamJsonActions = OpamJsonActions

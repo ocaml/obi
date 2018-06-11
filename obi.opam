@@ -16,6 +16,7 @@ depends: [
   "uri"
   "ptime"
   "yaml"
+  "ezjsonm"
 ]
 build: [
   ["jbuilder" "subst" "-p" name "--name" name] {pinned}

@@ -14,10 +14,13 @@
  *
  *)
 
+(** Index of all the opam2 builds.
+    The [Index] module contains types for the opam2 bulk build results.
+  *)
 module Index : sig
-  type maintainers = (string * string list) list [@@deriving sexp]
-  type tags = (string * string list) list [@@deriving sexp]
+
   type deps = (string * string * [ `Fail | `Ok | `Skipped ]) list [@@deriving sexp]
+  (** [deps] is a tuple of () *)
   type result =  [
     | `Ok
     | `Fail of int * deps
@@ -46,6 +49,8 @@ module Index : sig
      mutable versions: (string * metadata list) list 
    } [@@deriving sexp]
   type pkgs = pkg list [@@deriving sexp]
+  type maintainers = (string * string list) list [@@deriving sexp]
+  type tags = (string * string list) list [@@deriving sexp]
 end
 
 module Builds : sig
@@ -75,3 +80,8 @@ end
 module VersionCompare : sig
   val compare : string -> string -> int
 end
+
+module OpamJsonActions : sig
+  val installs : Ezjsonm.value -> Index.deps
+end
+
