@@ -12,7 +12,7 @@ RUN opam switch 4.06
 COPY . /home/opam/src/
 RUN sudo chown -R opam /home/opam/src
 RUN git -C /home/opam/opam-repository pull origin master && opam update
-RUN opam pin add -n --dev yaml
+RUN opam pin add -n --dev dockerfile-opam
 RUN opam install -y -j10 --deps-only /home/opam/src
 RUN cd /home/opam/src && opam exec -- jbuilder build
 RUN sudo cp /home/opam/src/_build/install/default/bin/obi-buildkite /usr/bin/obi-buildkite
