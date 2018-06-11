@@ -124,9 +124,8 @@ let default_cmd =
    ; `P "The $(i,opam-ci status) command shows a dashboard of the build results
    across this matrix. Packages can be filtered by maintainer substrings or tag names in the
     opam package description, so you see only those relevant to you."
-   ; `P "Once you find some errors, the $(i,opam-ci logs) command will show you the build errors
-    so you can fix them.  Finally, the $(i,opam-ci repro) command can generate
-    a Dockerfile of the precise build to reproduce the environment locally for you."
+   ; `P "The $(i,opam-ci logs) command will show you the build errors
+    so you can fix them.  It also generates a Dockerfile of the precise build to reproduce the environment locally for you."
    ; `P "To get started, try these commands with the maintainer argument replaced with your own information or tags:"
    ; `P "# show all the failing MirageOS packages"; `Noblank
    ; `P "opam-ci status -m org:mirage | less -R"

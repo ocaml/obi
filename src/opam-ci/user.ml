@@ -309,8 +309,18 @@ let render_package_details ppf pkg name version {distro; ov; arch} =
   | 0  ->
       Fmt.(pf ppf "%a: No failures found with these constraints\n%!" (styled `Bold string) name)
   | 1 ->
-      List.iter (fun (version, metadata) ->
-        List.iter (render_package_logs ppf version) metadata
+      List.iter (fun (version, m) ->
+        List.iter (render_package_logs ppf version) m;
+        List.iter (fun m ->
+          Fmt.(pf ppf "@\n%a %a Dockerfile for %s %s %s:@\n" (styled `Bold (styled `Blue string)) "====>" (styled `Bold string) version
+     (OV.to_string m.params.ov) (D.human_readable_string_of_distro m.params.distro) (OV.string_of_arch m.params.arch) );
+          let dfile =
+            let open Dockerfile in
+            Dockerfile_opam.bulk_build "ocaml/opam2" m.params.distro m.params.ov m.rev @@
+            run "opam depext -uiv %s.%s" name version
+          in
+          Fmt.pf ppf "%s@\n" (Dockerfile.string_of_t dfile)
+        ) m
       ) ms
   | _ ->
       Fmt.(pf ppf "%a: multiple build failures found with different configuration parameters.@\nPlease refine the command to select exactly one of the following:@\n" (styled `Bold string) name);
