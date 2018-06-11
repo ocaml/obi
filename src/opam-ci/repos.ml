@@ -29,7 +29,7 @@ let remote_logs_repo () =
   let absent = "https://github.com/avsm/obi-logs.git" in
   OS.Env.(value ~log:Logs.Debug "OBI_LOGS_REPO" string ~absent)
 
-let logs_polling_interval = 60. (* TODO bump to an hour *)
+let logs_polling_interval = 3600. 
 
 let run_git_in_repo ~repo args =
   OS.Cmd.(run (Cmd.(v "git" % "-C" % p repo %% of_list args)))
