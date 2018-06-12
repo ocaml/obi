@@ -57,9 +57,8 @@ module Index : sig
     ; params: params  (** build {!params} for this run *)
     ; build_result: result
           (** result of the execution of this set of parameters *)
-    ; start_time: float
-          (** wall clock start time of the build in Unix seconds *)
-    ; end_time: float  (** wall clock end time of the build in Unix seconds *)
+    ; duration: float
+          (** wall clock time of the duration of the build in Unix seconds *)
     ; log: string list
           (** list of log lines. This is blank unless there is an error *) }
   [@@deriving sexp]

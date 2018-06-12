@@ -38,4 +38,9 @@ opam-ci logs --help
 
 ## Further Information
 
+- [CHANGES.md](CHANGES.md) is the repository changelog for source code and
+  Buildkite scripts.
+- [METADATA.md](METADATA.md) contains a changelog for the Obi sexp format
+  that is published on <https://github.com/ocaml/obi-logs/tree/index>.
+
 While we are assembling the documentation, please contact @avsm for more information.

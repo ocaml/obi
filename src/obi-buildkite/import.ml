@@ -227,8 +227,7 @@ let pkg_metadata_of_batch logs_dir b =
             [ { Obi.Index.params
               ; rev
               ; build_result
-              ; start_time= res.start_time
-              ; end_time= res.end_time
+              ; duration = res.end_time -. res.start_time
               ; log } ]
           in
           Ok (version, metadata) )

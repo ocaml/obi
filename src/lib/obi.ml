@@ -53,8 +53,8 @@ module Index = struct
     [ `Ok
     | `Fail of int * deps
     | `Depfail of deps
-    | `Uninstallable of string list
-    | `No_sources of string list
+    | `Uninstallable of string list[@sexp.omit_nil]
+    | `No_sources of string list[@sexp.omit_nil]
     | `Solver_failure ]
   [@@deriving sexp]
 
@@ -81,21 +81,20 @@ module Index = struct
     { rev: string
     ; params: params
     ; build_result: result
-    ; start_time: float
-    ; end_time: float
-    ; log: string list }
+    ; duration: float
+    ; log: string list [@sexp.omit_nil] }
   [@@deriving sexp]
 
   type pkg =
     { name: string
     ; mutable maintainers: string list
-    ; mutable tags: string list
+    ; mutable tags: string list [@sexp.omit_nil]
     ; mutable versions: (string * metadata list) list }
   [@@deriving sexp]
 
   type t = {version: int [@default 0]; packages: pkg list} [@@deriving sexp]
 
-  let current_version = 1
+  let current_version = 2
 end
 
 module VersionCompare = VersionCompare
