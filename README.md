@@ -4,7 +4,7 @@ This repository contains the scripts, libraries and command-line tools to
 access the opam2 bulk build infrastructure that checks on the health of the
 [opam](https://opam.ocaml.org) package manager.
 
-The main hosting repositories available in this tool are:
+The main services and repositories associates with this infrastructure are:
 
 - **Documentation:**
   - <https://github.com/ocaml/infrastructure/wiki>
