@@ -59,9 +59,6 @@ an OPAM environment, and are particularly suitable for use with continuous integ
 systems such as [Travis CI](https://travis-ci.org).  All the containers are hosted
 on the [Docker Hub ocaml/opam2](http://hub.docker.com/r/ocaml/opam2) repository.
 
-**Note: this is still under development, so in the examples below you will need to use
-`ocaml/opam2-staging` instead of `ocaml/opam2` until we finish testing.**
-
 Using it is as simple as:
 
 ```
@@ -157,12 +154,12 @@ Development Versions of the Compiler
 You can also access development versions of the OCaml compiler (currently %s) that have not yet been released.  These are rebuilt around once a day, so you may lag a few commits behind the main master branch.  Since these are not intended to be long-term supported containers, you must reference the distribution and ocaml version explicitly in the tag, by using the form `distro-VERSION-ocaml-VERSION`.  For example:
 
 ```
-$ docker run -it ocaml/opam2-staging:debian-9-ocaml-4.07 opam switch
+$ docker run -it ocaml/opam2:debian-9-ocaml-4.07 opam switch
     switch              compiler                             description
 ->  4.07                ocaml-variants.4.07.0+trunk          4.07
     4.07+trunk+afl      ocaml-variants.4.07.0+trunk+afl      4.07+trunk+afl
     4.07+trunk+flambda  ocaml-variants.4.07.0+trunk+flambda  4.07+trunk+flambda
-$ docker run -it ocaml/opam2-staging:debian-9-ocaml-4.07 ocaml --version
+$ docker run -it ocaml/opam2:debian-9-ocaml-4.07 ocaml --version
 The OCaml toplevel, version 4.07.0+dev6-2018-04-10
 ```
 
