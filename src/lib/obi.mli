@@ -16,17 +16,16 @@
 
 (** Data structures for accessing results of opam2 package build results *)
 
-(** Index of all the opam2 builds.
-    The [Index] module contains types for the opam2 bulk build results.
-  *)
+(** Index of all the opam2 builds. The [Index] module contains types for the
+    opam2 bulk build results. *)
 module Index : sig
-  (** [deps] is a list of package dependencies, where each entry is a
-      tuple of [name, version, status]  *)
+  (** [deps] is a list of package dependencies, where each entry is a tuple of
+      [name, version, status] *)
   type deps = (string * string * [`Fail | `Ok | `Skipped]) list
   [@@deriving sexp]
 
-  (** [result] represents the exit result of an [opam] invocation. The raw
-      exit codes are parsed to look for special opam exit codes, which indicate
+  (** [result] represents the exit result of an [opam] invocation. The raw exit
+      codes are parsed to look for special opam exit codes, which indicate
       errors such as the internal solver failing to find a result. *)
   type result =
     [ `Ok
@@ -38,18 +37,20 @@ module Index : sig
   [@@deriving sexp]
 
   val pp_result : Format.formatter -> result -> unit
-  (** [pp_result ppf result] will print a human-readable result to formatter [ppf] *)
+  (** [pp_result ppf result] will print a human-readable result to formatter
+      [ppf] *)
 
-  (** [params] represents some of the build parameters that opam packages are tested
-    against. These include the CPU architecture, OS distribution and OCaml compiler
-    version. *)
+  (** [params] represents some of the build parameters that opam packages are
+      tested against. These include the CPU architecture, OS distribution and
+      OCaml compiler version. *)
   type params =
     { arch: Dockerfile_distro.arch  (** CPU architecture *)
     ; distro: Dockerfile_distro.t  (** Operating system distribution *)
     ; ov: Ocaml_version.t  (** OCaml compiler version *) }
   [@@deriving sexp]
 
-  (** [metadata] contains the results and parameters for a single build run of a package and version. *)
+  (** [metadata] contains the results and parameters for a single build run of
+      a package and version. *)
   type metadata =
     { rev: string
           (** opam-repository git revision hash that this run was built against *)
@@ -67,12 +68,18 @@ module Index : sig
   type pkg =
     { name: string  (** opam package name *)
     ; mutable maintainers: string list
-          (** list of maintainers associated with this package. As a heuristic, all of the maintainers listed for all versions are bundled together here for simplicity. *)
+          (** list of maintainers associated with this package. As a heuristic,
+              all of the maintainers listed for all versions are bundled
+              together here for simplicity. *)
     ; mutable tags: string list
-          (** list of tags associated with this package. As a heuristic, all of the tags listed of all versions are bundled together here for simplicity. *)
+          (** list of tags associated with this package. As a heuristic, all of
+              the tags listed of all versions are bundled together here for
+              simplicity. *)
     ; mutable versions: (string * metadata list) list
-          (** list of a tuple of opam package version and the list of build results. There is a list of results since there are usually multiple different runs for every version, to test it against different compiler and CPU/OS combinations. *)
-    }
+          (** list of a tuple of opam package version and the list of build
+              results. There is a list of results since there are usually
+              multiple different runs for every version, to test it against
+              different compiler and CPU/OS combinations. *) }
   [@@deriving sexp]
 
   (** [pkgs] is a full list of opam packages *)
