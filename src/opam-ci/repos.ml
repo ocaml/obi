@@ -26,7 +26,7 @@ let obi_dir () =
   OS.Env.(value ~log:Logs.Debug "OBI_HOME" path ~absent)
 
 let remote_logs_repo () =
-  let absent = "https://github.com/avsm/obi-logs.git" in
+  let absent = "https://github.com/ocaml/obi-logs.git" in
   OS.Env.(value ~log:Logs.Debug "OBI_LOGS_REPO" string ~absent)
 
 let logs_polling_interval = 3600. 
@@ -68,7 +68,7 @@ let init ?(refresh=`Poll) () =
     match refresh with
     | `Network ->
       Logs.debug (fun l -> l "Fetching latest Obi logs");
-      run_git_in_repo ~repo:local_logs_repo ["fetch"; "-q"; "origin"; "index"] >>= fun () ->
+      run_git_in_repo ~repo:local_logs_repo ["fetch"; "-q"; remote_logs_repo (); "index"] >>= fun () ->
       run_git_in_repo ~repo:local_logs_repo ["reset"; "-q"; "--hard"; "@{u}"] >>= fun () ->
       OS.File.write local_logs_mtime ""
     | `Local ->
