@@ -10,12 +10,12 @@ tags: ["org:mirage" "org:ocamllabs"]
 available: [ ocaml-version >= "4.05.0"]
 depends: [
   "jbuilder" {build & >="1.0+beta17"}
-  "dockerfile-opam"
-  "dockerfile-cmd"
+  "dockerfile-opam" {>="5.0.0"}
+  "dockerfile-cmd" {>="5.0.0"}
   "lambdasoup"
   "uri"
   "ptime"
-  "yaml"
+  "yaml" {>="0.2.0"}
   "ezjsonm"
 ]
 build: [
