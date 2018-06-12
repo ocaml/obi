@@ -161,7 +161,7 @@ let status_cmd =
   , Term.info "status" ~doc ~exits ~man )
 
 let logs_cmd =
-  let doc = "obi logs" in
+  let doc = "display detailed failure logs for opam packages" in
   let exits = Term.default_exits in
   let pkg_t = Arg.(required & pos 0 (some string) None & info [] ~doc) in
   let man =
