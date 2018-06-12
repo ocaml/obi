@@ -268,14 +268,15 @@ let render_package_logs ppf name version metadata =
   let open Obi.Index in
   let p = metadata.params in
   (let open Fmt in
-  pf ppf "@\n%a %a %s %s %s (%a):@\n"
+  pf ppf "@\n%a %a %s %s %s (%a) (opam-repository %s):@\n"
     (styled `Bold (styled `Blue string))
     "====>"
     (styled `Bold string)
     (name ^ "." ^ version)
     (OV.to_string p.ov)
     (D.human_readable_string_of_distro p.distro)
-    (OV.string_of_arch p.arch) pp_result metadata.build_result) ;
+    (OV.string_of_arch p.arch) pp_result metadata.build_result
+    (String.with_range ~len:8 metadata.rev)) ;
   match metadata.log with
   | [] -> Fmt.(pf ppf "<no logs available>@\n")
   | logs ->
