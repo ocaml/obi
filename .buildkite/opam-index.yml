@@ -15,7 +15,7 @@ steps:
       - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
       - git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'
       - rm -rf index
-      - git clone git@github.com:avsm/obi-logs index --reference .
+      - git clone git@github.com:ocaml/obi-logs index --reference .
       - git -C index checkout --orphan index
       - git -C index reset
       - git -C index clean -dxf
@@ -34,7 +34,7 @@ steps:
       - ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk && ssh-add -l
       - git config --global user.email 'bactrian@ocaml.org' && git config --global user.name 'Bactrian the Build Bot'
       - rm -rf obi-logs
-      - git clone git@github.com:avsm/obi-logs -b builds
+      - git clone git@github.com:ocaml/obi-logs -b builds
       - buildkite-agent artifact download 'maintainers.sxp' obi-logs
       - buildkite-agent artifact download 'tags.sxp' obi-logs
       - git -C obi-logs add tags.sxp maintainers.sxp

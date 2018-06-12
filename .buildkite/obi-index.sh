@@ -6,7 +6,7 @@ git -C opam-repository pull origin master
 opam update
 echo --- Cloning obi-logs
 rm -rf obi-logs
-git clone -b builds --depth=1 git://github.com/avsm/obi-logs
+git clone -b builds --depth=1 git://github.com/ocaml/obi-logs
 echo --- Generating index
 obi-buildkite index -i obi-logs -r opam-repository -vv > index.sxp
 echo --- Uploading result

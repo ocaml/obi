@@ -121,6 +121,6 @@ let init ?(refresh= `Poll) () =
        You probably need to run `opam update -u` to get the latest version of \
        opam-ci that is compatible with the log format.\n\
        If that does not help, then please report an issue at \
-       https://github.com/avsm/obi/issues"
+       https://github.com/ocaml/obi/issues"
     in
     Error (`Msg err)

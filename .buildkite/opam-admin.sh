@@ -37,7 +37,7 @@ cat <<EOL
   - "ssh-add -D && ssh-add ~/.ssh/id_rsa.bulk"
   - "buildkite-agent artifact download '*.txt' ."
   - "rm -rf lints"
-  - "git clone git@github.com:avsm/obi-logs lints --reference ."
+  - "git clone git@github.com:ocaml/obi-logs lints --reference ."
   - "git -C lints checkout --orphan lints"
   - "git -C lints reset"
   - "git -C lints clean -dxf"
