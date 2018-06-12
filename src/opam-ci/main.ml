@@ -61,8 +61,10 @@ let filter_t =
        list packages that regress with a compiler variant such as safe-string \
        or flambda. $(i,variants:fl), $(i,variants:rc) and $(i,variants:ss) \
        will show failures for just the flambda, release-candidate or \
-       safe-string tests respectively. $(i,all) will show all known results \
-       for all versions including successes."
+       safe-string tests respectively. $(i,lagging) will show the packages \
+       whose latest release is uninstallable against the latest version of \
+       the compiler. $(i,all) will show all known results for all versions \
+       including successes."
     in
     let open Arg in
     let term =
@@ -70,6 +72,7 @@ let filter_t =
         [ ("all", `All)
         ; ("failures", `Failures)
         ; ("recent", `Recent)
+        ; ("lagging", `Lagging)
         ; ("variants:ss", `Variants `SS)
         ; ("variants:fl", `Variants `Flambda)
         ; ("variants:rc", `Variants `RC) ]
