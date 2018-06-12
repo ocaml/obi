@@ -112,15 +112,42 @@ let init ?(refresh= `Poll) () =
   OS.File.read state
   >>= fun s ->
   try
-    let pkgs = Obi.Index.pkgs_of_sexp (Sexplib.Sexp.of_string s) in
+    let t = Obi.Index.t_of_sexp (Sexplib.Sexp.of_string s) in
+    let pkgs = t.Obi.Index.packages in
     Logs.debug (fun l -> l "Found metadata for %d packages" (List.length pkgs)) ;
     Ok pkgs
   with exn ->
-    let err =
-      "Error parsing upstream metadata.\n\
-       You probably need to run `opam update -u` to get the latest version of \
-       opam-ci that is compatible with the log format.\n\
-       If that does not help, then please report an issue at \
-       https://github.com/ocaml/obi/issues"
-    in
-    Error (`Msg err)
+    try
+      Printexc.record_backtrace true ;
+      (* Manually parse the sexpression to get the version string *)
+      let version =
+        let open Sexplib.Sexp in
+        let s = of_string s in
+        match s with
+        | List (List [Atom "version"; Atom v] :: _) -> int_of_string v
+        | _ -> raise (Failure "unable to find version string in index.sxp")
+      in
+      let err =
+        Printf.sprintf
+          "Your opam-ci client is out of date.\n\
+           It is using Obi metadata version %d but the upstream logs have \
+           version %d (higher indicates a newer version).\n\
+           Please run `opam update -u` to get the latest version of opam-ci \
+           that is compatible with the latest log format.\n\
+           If that does not work, you can try pinning to the development \
+           version of opam-ci via `opam pin add opam-ci --dev`.\n\
+           If that also does not help, then please report an issue at \
+           https://github.com/ocaml/obi/issues"
+          Obi.Index.current_version version
+      in
+      Error (`Msg err)
+    with exn ->
+      Printf.printf
+        "We have encountered a total failure to parse the upstream metadata.\n\
+         Please report this issue with at https://github.com/ocaml/obi/issues \
+         with this backtrace:\n\
+         %s\n\n         \
+         %s\n"
+        (Printexc.to_string exn)
+        (Printexc.get_backtrace ()) ;
+      exit 1

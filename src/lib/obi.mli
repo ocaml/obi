@@ -82,8 +82,16 @@ module Index : sig
               different compiler and CPU/OS combinations. *) }
   [@@deriving sexp]
 
-  (** [pkgs] is a full list of opam packages *)
-  type pkgs = pkg list [@@deriving sexp]
+  (** [t] contains a version number of the metadata system, which is set to
+      {!current_version} for the latest builds. Older clients can parse the
+      sexpression to determine if they need to upgrade for a newer format. The
+      [CHANGES.md] file in the Obi source code repository tracks metadata
+      version number bumps. *)
+  type t = {version: int; packages: pkg list} [@@deriving sexp]
+
+  val current_version : int
+  (** [current_version] is a monotonically increasing number for the version of
+      Obi in use. *)
 
   (** [maintainers] is an association list of the package name (including
       version string) to the list of maintainers registered for that package.
