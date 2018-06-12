@@ -1,11 +1,27 @@
-## OCaml Build Infrastructure
+# OCaml Build Infrastructure
 
 This repository contains the scripts, libraries and command-line tools to
 access the opam2 bulk build infrastructure that checks on the health of the
 [opam](https://opam.ocaml.org) package manager.
 
-The main tool you will want to try out is the opam-ci tool, which you can
-get by:
+The main hosting repositories available in this tool are:
+
+- **Documentation:**
+  - <https://github.com/ocaml/infrastructure/wiki>
+  - <https://github.com/ocaml/infrastructure/wiki/Containers> is rebuilt automatically with the latest information
+- **GitHub:** Git repositories
+  - <https://github.com/ocaml/obi>: for the source code
+  - <https://github.com/ocaml/obi-logs>: for the build logs
+- **Docker Hub:** container images
+  - <https://hub.docker.com/r/ocaml/opam2>: opam2 and OCaml compiler images
+  - <https://hub.docker.com/r/ocaml/opam2-staging>: intermediate container images for bulk builds
+- **Coordination:**
+  - <https://buildkite.com/ocaml>: the coordination Hub (account required until [buildkite#137](https://github.com/buildkite/feedback/issues/137) is resolved)
+
+## Getting Started
+
+The main tool you will want to try out is `opam-ci`, which provides
+CLI access to build results. You can get this by:
 
 ```
 opam pin add -n obi https://github.com/ocaml/obi.git
@@ -20,4 +36,6 @@ opam-ci status --help
 opam-ci logs --help
 ```
 
-In the meanwhile, please contact @avsm for more information.
+## Further Information
+
+While we are assembling the documentation, please contact @avsm for more information.
