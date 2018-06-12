@@ -392,11 +392,16 @@ let render_package_details ppf pkg name version {distro; ov; arch} =
             ms )
         ms
 
-let show_status {refresh} {maintainers; filters} () =
+let show_status {refresh} {maintainers; filters} packages () =
   let open Obi.Index in
   Repos.init ~refresh ()
   >>= fun pkgs ->
   let ppf = Fmt.stdout in
+  let pkgs =
+    match packages with
+    | [] -> pkgs
+    | _ -> List.filter (fun pkg -> List.mem pkg.name packages) pkgs
+  in
   let pkgs = List.sort (fun a b -> String.compare a.name b.name) pkgs in
   List.iter
     (fun pkg ->

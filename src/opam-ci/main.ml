@@ -111,6 +111,15 @@ let param_t =
 let status_cmd =
   let doc = "summary of builds across compilers, OS and CPUs" in
   let exits = Term.default_exits in
+  let packages_t =
+    let doc =
+      "optional list of package names (without versions) to filter the status \
+       list by. If omitted, all packages matching the criteria are shown. You \
+       can also use $(i,-m) to filter by maintainer or tag or $(i,-f) by \
+       other filter criteria (see below)."
+    in
+    Arg.(value & pos_all string [] & info [] ~docv:"PACKAGES" ~doc)
+  in
   let man =
     [ `S Manpage.s_description
     ; `P
@@ -157,7 +166,9 @@ let status_cmd =
          errors such as a failure of the solver to find a solution or the \
          package sources being unavailable." ]
   in
-  ( Term.(term_result (const show_status $ copts_t $ filter_t $ setup_logs))
+  ( (let open Term in
+    term_result
+      (const show_status $ copts_t $ filter_t $ packages_t $ setup_logs))
   , Term.info "status" ~doc ~exits ~man )
 
 let logs_cmd =
