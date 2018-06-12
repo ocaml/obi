@@ -12,10 +12,9 @@ depends: [
   "jbuilder" {build & >="1.0+beta17"}
   "dockerfile-opam" {>="5.0.0"}
   "dockerfile-cmd" {>="5.0.0"}
-  "lambdasoup"
-  "uri"
-  "ptime"
+  "ocaml-version" {>="0.3.0"}
   "yaml" {>="0.2.0"}
+  "uri"
   "ezjsonm"
 ]
 build: [

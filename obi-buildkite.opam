@@ -11,14 +11,14 @@ available: [ ocaml-version >= "4.05.0"]
 depends: [
   "jbuilder" {build & >="1.0+beta17"}
   "obi"
-  "dockerfile-opam"
-  "dockerfile-cmd"
+  "dockerfile-opam" {>="5.0.0"}
+  "dockerfile-cmd" {>="5.0.0"}
   "ezjsonm"
-  "lambdasoup"
   "uri"
   "ptime"
-  "yaml"
+  "yaml" {>="0.2.0"}
 ]
 build: [
+  ["jbuilder" "subst" "-p" name "--name" name] {pinned}
   ["jbuilder" "build" "-j" jobs]
 ]
