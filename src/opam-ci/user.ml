@@ -104,10 +104,8 @@ module A = struct
     | Some {build_result= `Solver_failure} -> `Solver_failure
     | Some {build_result= `No_sources _} -> `No_sources
 
-  let latest_version pkg =
-    List.sort
-      (fun a b -> Obi.VersionCompare.compare (fst b) (fst a))
-      pkg.versions
+  let latest_version versions =
+    List.sort (fun a b -> Obi.VersionCompare.compare (fst b) (fst a)) versions
     |> List.hd
 
   let test_two_versions a b m =
@@ -143,7 +141,16 @@ module A = struct
     | `RC -> test_ocaml406to7 m |> is_fail
 
   let any_variant_fails m =
+    (* TODO add an enumeration of the variants rather than hardcoding here *)
     List.exists (fun ty -> has_variant_fails ty m) [`Flambda; `SS; `RC]
+
+  let is_lagging ms =
+    let version, m = latest_version ms in
+    let ss = find ~ov:ov_stable m |> classify in
+    let uss = find ~ov:ov_rc m |> classify in
+    match (ss, uss) with
+    | (`Ok | `Unknown | `Uninstallable), `Uninstallable -> true
+    | _ -> false
 end
 
 module S = struct
@@ -221,8 +228,12 @@ type copts = {refresh: [`Local | `Poll | `Network]}
 
 type filters =
   { maintainers: string list
-  ; filters: [`All | `Failures | `Recent | `Variants of [`Flambda | `RC | `SS]]
-  }
+  ; filters:
+      [ `All
+      | `Failures
+      | `Recent
+      | `Lagging
+      | `Variants of [`Flambda | `RC | `SS] ] }
 
 type params = {distro: D.t option; ov: OV.t option; arch: OV.arch option}
 
@@ -287,6 +298,9 @@ let render_package ppf ~filters pkg =
   let open Obi.Index in
   match filters with
   | `All -> render_packages ppf pkg.name pkg.versions
+  | `Lagging ->
+      if A.is_lagging pkg.versions then
+        render_packages ppf pkg.name [A.latest_version pkg.versions]
   | `Failures ->
       List.filter (fun (_, m) -> A.has_fails m) pkg.versions
       |> render_packages ppf pkg.name
@@ -296,7 +310,7 @@ let render_package ppf ~filters pkg =
   | `Variants ty ->
       List.filter (fun (_, m) -> A.has_variant_fails ty m) pkg.versions
       |> render_packages ppf pkg.name
-  | `Recent -> render_packages ppf pkg.name [A.latest_version pkg]
+  | `Recent -> render_packages ppf pkg.name [A.latest_version pkg.versions]
 
 let render_package_details ppf pkg name version {distro; ov; arch} =
   let open Obi.Index in
