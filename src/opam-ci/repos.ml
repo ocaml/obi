@@ -128,7 +128,7 @@ let init ?(refresh= `Poll) () =
         | _ -> raise (Failure "unable to find version string in index.sxp")
       in
       let err =
-        Printf.sprintf
+        Fmt.strf
           "Your opam-ci client is out of date.\n\
            It is using Obi metadata version %d but the upstream logs have \
            version %d (higher indicates a newer version).\n\
@@ -142,16 +142,18 @@ let init ?(refresh= `Poll) () =
       in
       Error (`Msg err)
     with exn ->
-      Printf.printf
-        "We have encountered a total failure to parse the upstream metadata.\n\
-         Please run `opam update -u` to get the latest version of opam-ci \
-         that is compatible with the latest log format.\n\
-         If that does not work, you can try pinning to the development \
-         version of opam-ci via `opam pin add opam-ci --dev`.\n\
-         Please report this issue with at https://github.com/ocaml/obi/issues \
-         with this backtrace:\n\
-         %s\n\n         \
-         %s\n"
-        (Printexc.to_string exn)
-        (Printexc.get_backtrace ()) ;
-      exit 1
+      let err =
+        Fmt.strf
+          "We have encountered a total failure to parse the upstream metadata.\n\
+           Please run `opam update -u` to get the latest version of opam-ci \
+           that is compatible with the latest log format.\n\
+           If that does not work, you can try pinning to the development \
+           version of opam-ci via `opam pin add opam-ci --dev`.\n\
+           Please report this issue with at \
+           https://github.com/ocaml/obi/issues with this backtrace:\n\
+           %s\n\n         \
+           %s\n"
+          (Printexc.to_string exn)
+          (Printexc.get_backtrace ())
+      in
+      Error (`Msg err)
