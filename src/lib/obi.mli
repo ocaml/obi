@@ -85,12 +85,23 @@ module Index : sig
   (** [pkgs] is a full list of opam packages *)
   type pkgs = pkg list [@@deriving sexp]
 
+  (** [maintainers] is an association list of the package name (including
+      version string) to the list of maintainers registered for that package.
+      As a heuristic, all of the maintainers listed for all versions are
+      bundled here for simplicity. *)
   type maintainers = (string * string list) list [@@deriving sexp]
 
+  (** [tags] is an association list of the package name (including version
+      string) to the list of tags registered for that package. As a heuristic,
+      all of the tags listed for all versions are bundled here for simplicity. *)
   type tags = (string * string list) list [@@deriving sexp]
 end
 
+(** Results of individual builds for a particular parameters. This is not
+    intended for direct use by users, as the results are collected and
+    aggregated into the {!Index} module which is easier to consume by tools. *)
 module Builds : sig
+  (** [build_result] records the results of a single job build. *)
   type build_result =
     { code: [`Signaled of int | `Exited of int]
     ; actions: string
@@ -98,16 +109,24 @@ module Builds : sig
     ; end_time: float }
   [@@deriving sexp]
 
+  (** [pkg] records the results of the runs for every version of a package. *)
   type pkg = {name: string; versions: (string * build_result) list}
   [@@deriving sexp]
 
+  (** [params] is the configuration for a run. *)
   type params =
     { arch: Dockerfile_distro.arch
     ; distro: Dockerfile_distro.t
     ; ov: Ocaml_version.t }
   [@@deriving sexp]
 
-  type batch = {rev: string; params: params; pkgs: pkg list} [@@deriving sexp]
+  (** [batch] represents the results of a bulk build with one configuration
+      against a single opam-repository revision. *)
+  type batch =
+    { rev: string  (** opam-repository git revision *)
+    ; params: params
+    ; pkgs: pkg list }
+  [@@deriving sexp]
 end
 
 module VersionCompare : sig
