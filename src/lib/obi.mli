@@ -14,6 +14,8 @@
  *
  *)
 
+(** Data structures for accessing results of opam2 package build results *)
+
 (** Index of all the opam2 builds.
     The [Index] module contains types for the opam2 bulk build results.
   *)
