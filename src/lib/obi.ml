@@ -93,7 +93,9 @@ module Index = struct
     ; mutable versions: (string * metadata list) list }
   [@@deriving sexp]
 
-  type pkgs = pkg list [@@deriving sexp]
+  type t = {version: int [@default 0]; packages: pkg list} [@@deriving sexp]
+
+  let current_version = 1
 end
 
 module VersionCompare = VersionCompare

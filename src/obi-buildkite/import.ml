@@ -239,7 +239,7 @@ let pkg_metadata_of_batch logs_dir b =
       Ok {Obi.Index.name; versions; maintainers; tags} )
     b.pkgs
 
-let merge_pkgs (l: Obi.Index.pkgs list) =
+let merge_pkgs l =
   let open Obi.Index in
   let r = ref [] in
   List.iter
@@ -451,6 +451,7 @@ let summarise input_dir (opam_dir: Fpath.t) =
   let pkgs = merge_pkgs latest in
   save_maintainers input_dir ;
   save_tags input_dir ;
-  print_endline (ps Obi.Index.sexp_of_pkgs pkgs) ;
+  let index = Obi.Index.{version= current_version; packages= pkgs} in
+  print_endline (ps Obi.Index.sexp_of_t index) ;
   Hashtbl.iter (fun k v -> prerr_endline k) live_revs ;
   gc input_dir
