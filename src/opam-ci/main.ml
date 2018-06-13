@@ -63,8 +63,10 @@ let filter_t =
        will show failures for just the flambda, release-candidate or \
        safe-string tests respectively. $(i,lagging) will show the packages \
        whose latest release is uninstallable against the latest version of \
-       the compiler. $(i,all) will show all known results for all versions \
-       including successes."
+       the compiler. $(i,orphaned) will list all the packages that do not \
+       have an active maintainer, and so are looking for community help to \
+       take care of them. $(i,all) will show all known results for all \
+       versions including successes."
     in
     let open Arg in
     let term =
@@ -73,6 +75,7 @@ let filter_t =
         ; ("failures", `Failures)
         ; ("recent", `Recent)
         ; ("lagging", `Lagging)
+        ; ("orphaned", `Orphaned)
         ; ("variants:ss", `Variants `SS)
         ; ("variants:fl", `Variants `Flambda)
         ; ("variants:rc", `Variants `RC) ]
