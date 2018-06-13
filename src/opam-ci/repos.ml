@@ -35,7 +35,7 @@ let run_git_in_repo ~repo args =
 
 let run_git args = OS.Cmd.(run Cmd.(v "git" %% of_list args))
 
-let init ?(refresh= `Poll) () =
+let rec init ?(retry= false) ?(refresh= `Poll) () =
   let d = obi_dir () in
   Logs.info (fun l -> l "Initialising in %a" Fpath.pp d) ;
   OS.Dir.create ~path:true d
@@ -46,10 +46,11 @@ let init ?(refresh= `Poll) () =
   >>= fun repo_exists ->
   ( if repo_exists then (
     let refresh =
-      match refresh with
-      | `Local -> `Local
-      | `Network -> `Network
-      | `Poll ->
+      match (retry, refresh) with
+      | _, `Local -> `Local
+      | _, `Network -> `Network
+      | true, `Poll -> `Network
+      | false, `Poll ->
           let poll =
             OS.Path.stat local_logs_mtime
             >>= fun stats ->
@@ -140,7 +141,7 @@ let init ?(refresh= `Poll) () =
            https://github.com/ocaml/obi/issues"
           Obi.Index.current_version version
       in
-      Error (`Msg err)
+      if retry then Error (`Msg err) else init ~retry:true ~refresh ()
     with exn ->
       let err =
         Fmt.strf
@@ -156,4 +157,4 @@ let init ?(refresh= `Poll) () =
           (Printexc.to_string exn)
           (Printexc.get_backtrace ())
       in
-      Error (`Msg err)
+      if retry then Error (`Msg err) else init ~retry:true ~refresh ()
