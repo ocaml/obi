@@ -904,7 +904,7 @@ let default_cmd =
   let doc = "build and push opam and OCaml multiarch container images" in
   let sdocs = Manpage.s_common_options in
   ( Term.(ret (const (fun _ -> `Help (`Pager, None)) $ pure ()))
-  , Term.info "obi-buildkite" ~version:"v1.0.0" ~doc ~sdocs )
+  , Term.info "obi-buildkite" ~version:"%%VERSION%%" ~doc ~sdocs )
 
 let cmds = [gen_cmd; bulk_build; process_cmd; summarise_cmd]
 

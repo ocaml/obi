@@ -247,7 +247,7 @@ let default_cmd =
          detailed information." ]
   in
   ( Term.(ret (const (fun _ -> `Help (`Pager, None)) $ pure ()))
-  , Term.info "opam-ci" ~version:"v1.0.0" ~doc ~sdocs ~man )
+  , Term.info "opam-ci" ~version:"%%VERSION%%" ~doc ~sdocs ~man )
 
 let cmds = [status_cmd; logs_cmd]
 
