@@ -1,4 +1,4 @@
-# OCaml Build Infrastructure
+## obi -- interfaces to the OCaml Build Infrastructure
 
 This repository contains the scripts, libraries and command-line tools to
 access the opam2 bulk build infrastructure that checks on the health of the
