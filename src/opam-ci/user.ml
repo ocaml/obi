@@ -151,6 +151,12 @@ module A = struct
     match (ss, uss) with
     | (`Ok | `Unknown | `Uninstallable), `Uninstallable -> true
     | _ -> false
+
+  let is_unmaintained pkg =
+    pkg.maintainers = []
+    || List.mem "https://github.com/ocaml/opam-repository/issues"
+         pkg.maintainers
+    || List.mem "contact@ocamlpro.com" pkg.maintainers
 end
 
 module S = struct
@@ -233,6 +239,7 @@ type filters =
       | `Failures
       | `Recent
       | `Lagging
+      | `Orphaned
       | `Variants of [`Flambda | `RC | `SS] ] }
 
 type params = {distro: D.t option; ov: OV.t option; arch: OV.arch option}
@@ -301,6 +308,9 @@ let render_package ppf ~filters pkg =
   | `All -> render_packages ppf pkg.name pkg.versions
   | `Lagging ->
       if A.is_lagging pkg.versions then
+        render_packages ppf pkg.name [A.latest_version pkg.versions]
+  | `Orphaned ->
+      if A.is_unmaintained pkg then
         render_packages ppf pkg.name [A.latest_version pkg.versions]
   | `Failures ->
       List.filter (fun (_, m) -> A.has_fails m) pkg.versions
