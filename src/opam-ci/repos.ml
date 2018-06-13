@@ -80,7 +80,11 @@ let rec init ?(retry= false) ?(refresh= `Poll) () =
         run_git_in_repo ~repo:local_logs_repo
           ["fetch"; "-q"; remote_logs_repo (); "index"]
         >>= fun () ->
-        run_git_in_repo ~repo:local_logs_repo ["reset"; "-q"; "--hard"; "@{u}"]
+        run_git_in_repo ~repo:local_logs_repo
+          ["remote"; "set-url"; "origin"; remote_logs_repo ()]
+        >>= fun () ->
+        run_git_in_repo ~repo:local_logs_repo
+          ["reset"; "-q"; "--hard"; "origin/index"]
         >>= fun () -> OS.File.write local_logs_mtime ""
     | `Local ->
         Logs.debug (fun l -> l "Using existing Obi logs") ;
