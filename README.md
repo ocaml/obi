@@ -5,7 +5,7 @@ access the opam2 bulk build infrastructure that checks on the health of the
 [opam](https://opam.ocaml.org) package manager.
 
 <p align="center">
-  <img width="600" src="https://github.com/ocaml/obi/raw/asciicast/opam-ci.svg">
+  <img width="600" src="https://cdn.rawgit.com/ocaml/obi/1a9ad12aa756771b0ea731f40995c7ca7b55c31f/opam-ci.svg">
 </p>
 
 The main services and repositories associates with this infrastructure are:
