@@ -1,6 +1,10 @@
 This lists the changes in the Obi metadata, for when we want to parse old logs
 in the future.
 
+## 3
+
+- No changes yet.
+
 ## 2
 
 - Remove `Obi.Index.start_time` and `end_time` and replace with `duration`
