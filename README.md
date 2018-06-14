@@ -4,11 +4,16 @@ This repository contains the scripts, libraries and command-line tools to
 access the opam2 bulk build infrastructure that checks on the health of the
 [opam](https://opam.ocaml.org) package manager.
 
+<p align="center">
+  <img width="600" src="https://github.com/ocaml/obi/raw/asciicast/opam-ci.svg">
+</p>
+
 The main services and repositories associates with this infrastructure are:
 
 - **Documentation:**
   - <https://github.com/ocaml/infrastructure/wiki>
   - <https://github.com/ocaml/infrastructure/wiki/Containers> is rebuilt automatically with the latest information
+  - <https://github.com/ocaml/infrastructure/wiki/Using-the-opam-ci-tool>
 - **GitHub:** Git repositories
   - <https://github.com/ocaml/obi>: for the source code
   - <https://github.com/ocaml/obi-logs>: for the build logs
@@ -21,20 +26,14 @@ The main services and repositories associates with this infrastructure are:
 ## Getting Started
 
 The main tool you will want to try out is `opam-ci`, which provides
-CLI access to build results. You can get this by:
+CLI access to build results. You can try this out by:
 
-```
-opam pin add -n obi https://github.com/ocaml/obi.git
-opam pin add opam-ci https://github.com/ocaml/obi.git
-```
+    opam update
+    opam ci --help
+    opam ci status --help
+    opam ci logs --help
 
-and then try it out via:
-
-```
-opam-ci --help
-opam-ci status --help
-opam-ci logs --help
-```
+See the [online documentation](https://github.com/ocaml/infrastructure/wiki/Using-the-opam-ci-tool) for more information.
 
 ## Further Information
 
