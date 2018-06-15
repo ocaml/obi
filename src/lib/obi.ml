@@ -97,5 +97,5 @@ module Index = struct
   let current_version = 2
 end
 
-module VersionCompare = VersionCompare
+module VersionCompare = OpamVersionCompare
 module OpamJsonActions = OpamJsonActions
