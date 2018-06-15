@@ -16,6 +16,7 @@ depends: [
   "yaml" {>="0.2.0"}
   "uri"
   "ezjsonm"
+  "opam-core"
 ]
 build: [
   ["jbuilder" "subst" "-p" name "--name" name] {pinned}
