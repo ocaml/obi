@@ -8,9 +8,7 @@ steps:
       - opam --yes depext -iy duniverse
       - git clone git://github.com/ocaml/opam /home/opam/opam
       - cd /home/opam/opam
-      - opam exec -- duniverse opam opam dune-release utop bun odoc opam-depext -vv
-      - opam exec -- duniverse dune -vv
-      - cat .duniverse*.sxp
+      - opam exec -- duniverse opam opam-devel dune-release utop bun odoc opam-depext -vv && opam exec -- duniverse lock -vv && cat .duniverse*.sxp
     agents:
       docker: "true"
       arch: "amd64"
