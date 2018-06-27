@@ -3,8 +3,9 @@ steps:
     command:
       - opam pin add -ny jbuilder --dev
       - opam pin add -ny dune https://github.com/ocaml/dune.git
-      - opam pin add -y duniverse https://github.com/avsm/duniverse.git
-      - opam install -y dune
+      - opam pin add -ny duniverse https://github.com/avsm/duniverse.git
+      - opam --yes depext -uiy dune
+      - opam --yes depext -iy duniverse
       - git clone git://github.com/ocaml/opam /home/opam/opam
       - cd /home/opam/opam
       - opam exec -- duniverse opam opam dune-release utop bun odoc opam-depext -vv
