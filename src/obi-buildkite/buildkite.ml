@@ -174,7 +174,7 @@ There are a large number of distribution and OCaml version combinations that are
 Package Sandboxing
 ==================
 
-The Docker containers install opam2's Bubblewrap tool that is used for sandboxing builds.  However, due to the way that Linux sandboxing works, this may not work with all Docker installations since unprivileged containers cannot create new Linux namespaces on some installations.  Thus, sandboxing is disabled by default in the containers that have opam initialised.
+The Docker containers install opam2's [Bubblewrap](https://github.com/projectatomic/bubblewrap) tool that is used for sandboxing builds.  However, due to the way that Linux sandboxing works, this may not work with all Docker installations since unprivileged containers cannot create new Linux namespaces on some installations.  Thus, sandboxing is disabled by default in the containers that have opam initialised.
 
 If you can run containers with `docker run --privileged`, then you can enable opam sandboxing within the container by running `opam-sandbox-enable` within the container.  This will ensure that every package is restricted to only writing within `~/.opam` and is the recommended way of doing testing.
 
