@@ -22,6 +22,8 @@ The main services and repositories associates with this infrastructure are:
   - <https://hub.docker.com/r/ocaml/opam2-staging>: intermediate container images for bulk builds
 - **Coordination:**
   - <https://buildkite.com/ocaml>: the coordination Hub (account required until [buildkite#137](https://github.com/buildkite/feedback/issues/137) is resolved)
+- **Users:**
+  - The results database is also used by <http://check.ocamllabs.io>
 
 ## Getting Started
 
