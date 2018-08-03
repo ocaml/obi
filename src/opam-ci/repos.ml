@@ -152,7 +152,7 @@ let rec init ?(retry= false) ?(refresh= `Poll) () =
           "We have encountered a total failure to parse the upstream metadata.\n\
            Please run `opam update -u` to get the latest version of opam-ci \
            that is compatible with the latest log format.\n\
-           If that does not work, you can try pinning to the development \
+           If that does not work, try pinning to the development \
            version of opam-ci via `opam pin add opam-ci --dev`.\n\
            Please report this issue with at \
            https://github.com/ocaml/obi/issues with this backtrace:\n\
