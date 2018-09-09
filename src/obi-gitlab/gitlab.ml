@@ -194,9 +194,19 @@ This is all possible thanks to generous infrastructure contributions from [Packe
   in
   intro
 
+let assoc_hashtbl l =
+  let h = Hashtbl.create 7 in
+  List.iter
+    (fun (k, v) ->
+      match Hashtbl.find h k with
+      | a -> Hashtbl.replace h k (v :: a)
+      | exception Not_found -> Hashtbl.add h k [v] )
+    l ;
+  h
+
 let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir) ;
-  let dockerfiles =
+  let opam_dockerfiles =
     List.map
       (fun arch ->
         let arch_s = OV.string_of_arch arch in
@@ -214,6 +224,36 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       arches
     |> List.flatten
   in
+  let opam_arch_builds =
+    List.map
+      (fun (f, arch) ->
+        let arch = OV.string_of_arch arch in
+        let tag = Fmt.strf "%s:%s-opam-linux-%s" staging_hub_id f arch in
+        let label = Fmt.strf "%s-opam-linux-%s" f arch in
+        let cmds =
+          `O
+            [ ("only", `A [`String "/^dockerfiles$/"])
+            ; ("stage", `String "opam-builds")
+            ; ("retry", `String "2")
+            ; ("tags", `A [`String "shell"; `String arch])
+            ; ( "script"
+              , `A
+                  [ `String
+                      "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN \
+                       registry.gitlab.com"
+                  ; `String
+                      (Fmt.strf
+                         "docker build --no-cache -t %s \
+                          docker/opam-%s/Dockerfile.%s ."
+                         tag arch f)
+                  ; `String (Fmt.strf "docker push %s" tag) ] ) ]
+        in
+        `O [(label, cmds)] )
+      opam_dockerfiles
+  in
+  let opam_dockerfiles_by_arch = assoc_hashtbl opam_dockerfiles in
+  let yml = `A opam_arch_builds |> Yaml.to_string_exn ~len:256000 in
+  prerr_endline yml ;
   Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
 let pkg_version pkg =
@@ -248,7 +288,7 @@ let copts_t =
     let doc = "Docker Hub user/repo to push to for staging builds" in
     let open Arg in
     value
-    & opt string "ocaml/opam2-staging"
+    & opt string "registry.gitlab.com/ocaml-platform/opam-containers"
     & info ["staging-hub-id"] ~docv:"STAGING_HUB_ID" ~doc ~docs
   in
   let prod_hub_id =
@@ -310,6 +350,6 @@ let default_cmd =
   ( Term.(ret (const (fun _ -> `Help (`Pager, None)) $ pure ()))
   , Term.info "obi-git" ~version:"%%VERSION%%" ~doc ~sdocs )
 
-let cmds = [gen_cmd] 
+let cmds = [gen_cmd]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
