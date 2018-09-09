@@ -242,7 +242,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
                        registry.gitlab.com"
                   ; `String
                       (Fmt.strf
-                         "docker build --no-cache -t %s \
+                         "docker build --no-cache -t %s -f \
                           docker/opam-%s/Dockerfile.%s ."
                          tag arch f)
                   ; `String (Fmt.strf "docker push %s" tag) ] ) ]
