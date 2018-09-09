@@ -242,10 +242,10 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
                       "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
                   ; `String
                       (Fmt.strf
-                         "echo docker build --no-cache -t %s -f \
+                         "docker build -t %s -f \
                           opam-%s/Dockerfile.%s ."
                          tag arch f)
-                  ; `String (Fmt.strf "echo docker push %s" tag) ] ) ]
+                  ; `String (Fmt.strf "docker push %s" tag) ] ) ]
         in
         (label, cmds) )
       opam_dockerfiles
