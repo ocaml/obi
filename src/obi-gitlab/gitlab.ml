@@ -235,6 +235,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             [ ("only", `A [`String "/^dockerfiles$/"])
             ; ("stage", `String "opam-builds")
             ; ("retry", `String "2")
+            ; ("when", `String "manual")
             ; ("tags", `A [`String "shell"; `String arch])
             ; ( "script"
               , `A
