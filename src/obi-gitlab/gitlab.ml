@@ -267,7 +267,7 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
           ; ("tags", `A [`String "shell"; `String "amd64"])
           ; ("script", script) ]
       in
-      (Fmt.strf "%s-%s" f name, cmds) :: acc )
+      (Fmt.strf "%s-%s" tag name, cmds) :: acc )
     h []
 
 let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
@@ -328,9 +328,12 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
           try snd (Hashtbl.find ocaml_dockerfiles_by_arch f)
           with Not_found -> []
         in
-        Hashtbl.add distro_aliases f (Some tag, arches) )
+        Hashtbl.add distro_aliases f (Some tag, arches);
+        (* Add an alias for "latest" for Debian Stable too *)
+        (if ldistro = `Debian `Stable then
+          Hashtbl.add distro_aliases f (Some "latest", arches)))
       D.latest_distros ;
-    gen_multiarch ~staging_hub_id ~prod_hub_id distro_aliases "" "distro"
+    gen_multiarch ~staging_hub_id ~prod_hub_id distro_aliases "" "alias"
   in
   let ocaml_alias_multiarch =
     let ocaml_aliases = Hashtbl.create 7 in
@@ -348,7 +351,7 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         let tag = OV.to_string ov in
         Hashtbl.add ocaml_aliases f (Some tag, arches) )
       OV.Releases.recent ;
-    gen_multiarch ~staging_hub_id ~prod_hub_id ocaml_aliases "" "compiler"
+    gen_multiarch ~staging_hub_id ~prod_hub_id ocaml_aliases "" "alias"
   in
   let yml =
     `O
