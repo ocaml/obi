@@ -267,7 +267,11 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
           ; ("tags", `A [`String "shell"; `String "amd64"])
           ; ("script", script) ]
       in
-      (Fmt.strf "%s" tag, cmds) :: acc )
+      let jobname =
+        match tag.[0] with
+        |'0'..'9' -> "v" ^ tag
+        |_ -> tag in
+      (jobname, cmds) :: acc )
     h []
 
 let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
