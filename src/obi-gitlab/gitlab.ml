@@ -239,8 +239,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             ; ( "script"
               , `A
                   [ `String
-                      "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN \
-                       registry.gitlab.com"
+                      "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
                   ; `String
                       (Fmt.strf
                          "echo docker build --no-cache -t %s -f \
@@ -275,8 +274,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         let script =
           `A
             ( [ `String
-                  "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN \
-                   registry.gitlab.com" ]
+                  "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD" ]
             @ pulls
             @ [ `String
                   (Fmt.strf "docker manifest push -p %s:%s-opam || true"
@@ -345,7 +343,7 @@ let copts_t =
     let doc = "Docker Hub user/repo to push to for staging builds" in
     let open Arg in
     value
-    & opt string "registry.gitlab.com/ocaml-platform/opam-containers"
+    & opt string "ocaml/opam2-staging"
     & info ["staging-hub-id"] ~docv:"STAGING_HUB_ID" ~doc ~docs
   in
   let prod_hub_id =
@@ -353,8 +351,7 @@ let copts_t =
       "Docker Hub user/repo to push to for production multiarch builds"
     in
     let open Arg in
-    value
-    & opt string "registry.gitlab.com/ocaml-platform/opam-containers"
+    value & opt string "ocaml/opam2"
     & info ["prod-hub-id"] ~docv:"PROD_HUB_ID" ~doc ~docs
   in
   let results_dir =
