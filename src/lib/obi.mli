@@ -44,7 +44,7 @@ module Index : sig
       tested against. These include the CPU architecture, OS distribution and
       OCaml compiler version. *)
   type params =
-    { arch: Dockerfile_distro.arch  (** CPU architecture *)
+    { arch: Ocaml_version.arch  (** CPU architecture *)
     ; distro: Dockerfile_distro.t  (** Operating system distribution *)
     ; ov: Ocaml_version.t  (** OCaml compiler version *) }
   [@@deriving sexp]
@@ -122,7 +122,7 @@ module Builds : sig
 
   (** [params] is the configuration for a run. *)
   type params =
-    { arch: Dockerfile_distro.arch
+    { arch: Ocaml_version.arch
     ; distro: Dockerfile_distro.t
     ; ov: Ocaml_version.t }
   [@@deriving sexp]

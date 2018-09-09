@@ -33,7 +33,7 @@ module Builds = struct
   [@@deriving sexp]
 
   type params =
-    { arch: Dockerfile_distro.arch
+    { arch: Ocaml_version.arch
     ; distro: Dockerfile_distro.t
     ; ov: Ocaml_version.t }
   [@@deriving sexp]
@@ -72,7 +72,7 @@ module Index = struct
     | `Solver_failure -> pp_print_string ppf "internal opam solver failure"
 
   type params =
-    { arch: Dockerfile_distro.arch
+    { arch: Ocaml_version.arch
     ; distro: Dockerfile_distro.t
     ; ov: Ocaml_version.t }
   [@@deriving sexp]
