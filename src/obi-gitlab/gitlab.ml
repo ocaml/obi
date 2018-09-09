@@ -234,7 +234,6 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
           `O
             [ ("stage", `String "opam-builds")
             ; ("retry", `String "2")
-            ; ("except", `A [ `String "pushes"; `String "branches" ])
             ; ("tags", `A [`String "shell"; `String arch])
             ; ( "script"
               , `A
