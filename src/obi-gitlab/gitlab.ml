@@ -249,11 +249,11 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
                          tag arch f)
                   ; `String (Fmt.strf "docker push %s" tag) ] ) ]
         in
-        `O [(label, cmds)] )
+        (label, cmds))
       opam_dockerfiles
   in
   let opam_dockerfiles_by_arch = assoc_hashtbl opam_dockerfiles in
-  let yml = `A opam_arch_builds |> Yaml.to_string_exn ~len:256000 in
+  let yml = `O opam_arch_builds |> Yaml.to_string_exn ~len:256000 in
   Bos.OS.File.write Fpath.(results_dir / "opam-builds.yml") yml >>= fun () ->
   Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
