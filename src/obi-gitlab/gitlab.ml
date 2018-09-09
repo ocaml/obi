@@ -199,8 +199,8 @@ let assoc_hashtbl l =
   List.iter
     (fun (k, v) ->
       match Hashtbl.find h k with
-      | a -> Hashtbl.replace h k (v :: a)
-      | exception Not_found -> Hashtbl.add h k [v] )
+      | _, a -> Hashtbl.replace h k (None, v :: a)
+      | exception Not_found -> Hashtbl.add h k (None, [v]) )
     l ;
   h
 
@@ -211,6 +211,64 @@ let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
         (Fmt.strf "docker build -t %s -f  %s-%s/Dockerfile.%s ." tag prefix
            arch distro)
     ; `String (Fmt.strf "docker push %s" tag) ]
+
+let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
+  Hashtbl.fold
+    (fun f (tag, arches) acc ->
+      let tags =
+        List.map
+          (fun arch ->
+            Fmt.strf "%s:%s%s-linux-%s" staging_hub_id f suffix
+              (OV.string_of_arch arch) )
+          arches
+      in
+      let l = String.concat " " tags in
+      let pulls =
+        List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags
+      in
+      let tag =
+        match tag with None -> Fmt.strf "%s%s" f suffix | Some t -> t
+      in
+      let annotates =
+        List.map2
+          (fun tag arch ->
+            let flags =
+              match arch with
+              | `Aarch32 -> "--arch arm32 --variant v7"
+              | `Aarch64 -> "--arch arm64 --variant v8"
+              | `X86_64 -> "--arch amd64"
+              | `Ppc64le -> "--arch ppc64le"
+            in
+            `String
+              (Fmt.strf "docker manifest annotate %s:%s%s %s %s" prod_hub_id f
+                 suffix tag flags) )
+          tags arches
+      in
+      let script =
+        `A
+          ( [`String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"]
+          @ pulls
+          @ [ `String
+                (Fmt.strf "docker manifest push -p %s:%s%s || true" prod_hub_id
+                   f suffix)
+            ; `String
+                (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l)
+            ]
+          @ annotates
+          @ [ `String (Fmt.strf "docker manifest inspect %s:%s" prod_hub_id tag)
+            ; `String
+                (Fmt.strf "docker manifest push -p %s:%s" prod_hub_id tag) ] )
+      in
+      let cmds : Yaml.value =
+        `O
+          [ ("stage", `String (Fmt.strf "%s-multiarch" name))
+          ; ("retry", `String "2")
+          ; ("except", `A [`String "pushes"])
+          ; ("tags", `A [`String "shell"; `String "amd64"])
+          ; ("script", script) ]
+      in
+      (Fmt.strf "%s-%s" f name, cmds) :: acc )
+    h []
 
 let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir) ;
@@ -239,7 +297,7 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
     List.map
       (fun (f, arch) ->
         let arch = OV.string_of_arch arch in
-        let label = Fmt.strf "%s-opam-linux-%s" f arch in
+        let label = Fmt.strf "%s-linux-%s" f arch in
         let tag = Fmt.strf "%s:%s" staging_hub_id label in
         let cmds =
           `O
@@ -254,7 +312,50 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       ocaml_dockerfiles
   in
   let ocaml_dockerfiles_by_arch = assoc_hashtbl ocaml_dockerfiles in
-  let yml = `O ocaml_arch_builds |> Yaml.to_string_exn ~len:256000 in
+  let ocaml_multiarch_dockerfiles =
+    gen_multiarch ~staging_hub_id ~prod_hub_id ocaml_dockerfiles_by_arch ""
+      "ocaml"
+  in
+  (* Generate aliases for OCaml releases and distros *)
+  let distro_alias_multiarch =
+    let distro_aliases = Hashtbl.create 7 in
+    List.iter
+      (fun ldistro ->
+        let distro = D.resolve_alias ldistro in
+        let f = D.tag_of_distro distro in
+        let tag = D.tag_of_distro ldistro in
+        let arches =
+          try snd (Hashtbl.find ocaml_dockerfiles_by_arch f)
+          with Not_found -> []
+        in
+        Hashtbl.add distro_aliases f (Some tag, arches) )
+      D.latest_distros ;
+    gen_multiarch ~staging_hub_id ~prod_hub_id distro_aliases "" "distro"
+  in
+  let ocaml_alias_multiarch =
+    let ocaml_aliases = Hashtbl.create 7 in
+    List.iter
+      (fun ov ->
+        let ov = OV.with_patch ov None in
+        let distro = D.resolve_alias (`Debian `Stable) in
+        let f =
+          Fmt.strf "%s-ocaml-%s" (D.tag_of_distro distro) (OV.to_string ov)
+        in
+        let arches =
+          try snd (Hashtbl.find ocaml_dockerfiles_by_arch f)
+          with Not_found -> []
+        in
+        let tag = OV.to_string ov in
+        Hashtbl.add ocaml_aliases f (Some tag, arches) )
+      OV.Releases.recent ;
+    gen_multiarch ~staging_hub_id ~prod_hub_id ocaml_aliases "" "compiler"
+  in
+  let yml =
+    `O
+      ( ocaml_arch_builds @ ocaml_multiarch_dockerfiles @ distro_alias_multiarch
+      @ ocaml_alias_multiarch )
+    |> Yaml.to_string_exn ~len:256000
+  in
   Bos.OS.File.write Fpath.(results_dir / "ocaml-builds.yml") yml
   >>= fun () -> Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
@@ -296,65 +397,9 @@ let gen_opam ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
       opam_dockerfiles
   in
   let opam_dockerfiles_by_arch = assoc_hashtbl opam_dockerfiles in
-  let gen_multiarch h tagfn : (string * Yaml.value) list =
-    Hashtbl.fold
-      (fun f arches acc ->
-        let tags =
-          List.map
-            (fun arch -> Fmt.strf "%s:%s" staging_hub_id (tagfn f arch))
-            arches
-        in
-        let l = String.concat " " tags in
-        let pulls =
-          List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags
-        in
-        let annotates =
-          List.map2
-            (fun tag arch ->
-              let flags =
-                match arch with
-                | `Aarch32 -> "--arch arm32 --variant v7"
-                | `Aarch64 -> "--arch arm64 --variant v8"
-                | `X86_64 -> "--arch amd64"
-                | `Ppc64le -> "--arch ppc64le"
-              in
-              `String
-                (Fmt.strf "docker manifest annotate %s:%s-opam %s %s"
-                   prod_hub_id f tag flags) )
-            tags arches
-        in
-        let script =
-          `A
-            ( [ `String
-                  "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD" ]
-            @ pulls
-            @ [ `String
-                  (Fmt.strf "docker manifest push -p %s:%s-opam || true"
-                     prod_hub_id f)
-              ; `String
-                  (Fmt.strf "docker manifest create %s:%s-opam %s" prod_hub_id
-                     f l) ]
-            @ annotates
-            @ [ `String
-                  (Fmt.strf "docker manifest inspect %s:%s-opam" prod_hub_id f)
-              ; `String
-                  (Fmt.strf "docker manifest push -p %s:%s-opam" prod_hub_id f)
-              ] )
-        in
-        let cmds : Yaml.value =
-          `O
-            [ ("stage", `String "opam-multiarch")
-            ; ("retry", `String "2")
-            ; ("except", `A [`String "pushes"])
-            ; ("tags", `A [`String "shell"; `String "amd64"])
-            ; ("script", script) ]
-        in
-        (Fmt.strf "%s-opam" f, cmds) :: acc )
-      h []
-  in
   let opam_multiarch_dockerfiles =
-    gen_multiarch opam_dockerfiles_by_arch (fun distro arch ->
-        Fmt.strf "%s-opam-linux-%s" distro (OV.string_of_arch arch) )
+    gen_multiarch ~staging_hub_id ~prod_hub_id opam_dockerfiles_by_arch "-opam"
+      "opam"
   in
   let yml =
     `O (opam_arch_builds @ opam_multiarch_dockerfiles)
