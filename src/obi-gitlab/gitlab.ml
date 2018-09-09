@@ -352,7 +352,7 @@ let copts_t =
     in
     let open Arg in
     value
-    & opt string "registry.gitlab.com/ocaml-platform/opam-containers/opam2"
+    & opt string "registry.gitlab.com/ocaml-platform/opam-containers"
     & info ["prod-hub-id"] ~docv:"PROD_HUB_ID" ~doc ~docs
   in
   let results_dir =
