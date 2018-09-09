@@ -234,6 +234,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
           `O
             [ ("stage", `String "opam-builds")
             ; ("retry", `String "2")
+            ; ("except", `A [`String "pushes"])
             ; ("tags", `A [`String "shell"; `String arch])
             ; ( "script"
               , `A
@@ -294,6 +295,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
           `O
             [ ("stage", `String "opam-multiarch")
             ; ("retry", `String "2")
+            ; ("except", `A [`String "pushes"])
             ; ("tags", `A [`String "shell"; `String "amd64"])
             ; ("script", script) ]
         in
