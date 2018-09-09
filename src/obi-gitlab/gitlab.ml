@@ -204,13 +204,66 @@ let assoc_hashtbl l =
     l ;
   h
 
-let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
+let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
+  `A
+    [ `String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
+    ; `String
+        (Fmt.strf "docker build -t %s -f  %s-%s/Dockerfile.%s ." tag prefix
+           arch distro)
+    ; `String (Fmt.strf "docker push %s" tag) ]
+
+let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
+  ignore (Bos.OS.Dir.create ~path:true results_dir) ;
+  let ocaml_dockerfiles =
+    List.map
+      (fun arch ->
+        let prefix = Fmt.strf "ocaml-%s" (OV.string_of_arch arch) in
+        let results_dir = Fpath.(results_dir / prefix) in
+        ignore (Bos.OS.Dir.create ~path:true results_dir) ;
+        let all_compilers =
+          D.active_distros arch
+          |> List.map (O.all_ocaml_compilers prod_hub_id arch)
+        in
+        let each_compiler =
+          D.active_tier1_distros arch
+          |> List.map (O.separate_ocaml_compilers prod_hub_id arch)
+          |> List.flatten
+        in
+        let dfiles = all_compilers @ each_compiler in
+        ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles) ;
+        List.map (fun (f, _) -> (f, arch)) dfiles )
+      arches
+    |> List.flatten
+  in
+  let ocaml_arch_builds =
+    List.map
+      (fun (f, arch) ->
+        let arch = OV.string_of_arch arch in
+        let label = Fmt.strf "%s-opam-linux-%s" f arch in
+        let tag = Fmt.strf "%s:%s" staging_hub_id label in
+        let cmds =
+          `O
+            [ ("stage", `String "ocaml-builds")
+            ; ("retry", `String "2")
+            ; ("except", `A [`String "pushes"])
+            ; ("tags", `A [`String "shell"; `String arch])
+            ; ( "script"
+              , docker_build_and_push_cmds ~distro:f ~arch ~tag "ocaml" ) ]
+        in
+        (label, cmds) )
+      ocaml_dockerfiles
+  in
+  let ocaml_dockerfiles_by_arch = assoc_hashtbl ocaml_dockerfiles in
+  let yml = `O ocaml_arch_builds |> Yaml.to_string_exn ~len:256000 in
+  Bos.OS.File.write Fpath.(results_dir / "ocaml-builds.yml") yml
+  >>= fun () -> Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
+
+let gen_opam ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
   ignore (Bos.OS.Dir.create ~path:true results_dir) ;
   let opam_dockerfiles =
     List.map
       (fun arch ->
-        let arch_s = OV.string_of_arch arch in
-        let prefix = Fmt.strf "opam-%s" arch_s in
+        let prefix = Fmt.strf "opam-%s" (OV.string_of_arch arch) in
         let results_dir = Fpath.(results_dir / prefix) in
         ignore (Bos.OS.Dir.create ~path:true results_dir) ;
         let distros =
@@ -236,16 +289,8 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             ; ("retry", `String "2")
             ; ("except", `A [`String "pushes"])
             ; ("tags", `A [`String "shell"; `String arch])
-            ; ( "script"
-              , `A
-                  [ `String
-                      "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
-                  ; `String
-                      (Fmt.strf
-                         "docker build -t %s -f \
-                          opam-%s/Dockerfile.%s ."
-                         tag arch f)
-                  ; `String (Fmt.strf "docker push %s" tag) ] ) ]
+            ; ("script", docker_build_and_push_cmds ~distro:f ~arch ~tag "opam")
+            ]
         in
         (label, cmds) )
       opam_dockerfiles
@@ -268,10 +313,11 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             (fun tag arch ->
               let flags =
                 match arch with
-                |`Aarch32 -> "--arch arm32 --variant v7"
-                |`Aarch64 -> "--arch arm64 --variant v8"
-                |`X86_64 -> "--arch amd64"
-                |`Ppc64le -> "--arch ppc64le" in
+                | `Aarch32 -> "--arch arm32 --variant v7"
+                | `Aarch64 -> "--arch arm64 --variant v8"
+                | `X86_64 -> "--arch amd64"
+                | `Ppc64le -> "--arch ppc64le"
+              in
               `String
                 (Fmt.strf "docker manifest annotate %s:%s-opam %s %s"
                    prod_hub_id f tag flags) )
@@ -395,15 +441,25 @@ let build_t =
   in
   Term.(const buildv $ ocaml_version $ distro)
 
-let gen_cmd =
+let opam_cmd =
   let doc = "generate, build and push base opam container images" in
   let exits = Term.default_exits in
   let man =
     [ `S Manpage.s_description
     ; `P "Generate and build base $(b,opam) container images." ]
   in
-  ( Term.(term_result (const gen $ copts_t $ setup_logs))
-  , Term.info "gen" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+  ( Term.(term_result (const gen_opam $ copts_t $ setup_logs))
+  , Term.info "opam" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
+
+let ocaml_cmd =
+  let doc = "generate, build and push base ocaml container images" in
+  let exits = Term.default_exits in
+  let man =
+    [ `S Manpage.s_description
+    ; `P "Generate and build base $(b,ocaml) container images." ]
+  in
+  ( Term.(term_result (const gen_ocaml $ copts_t $ setup_logs))
+  , Term.info "ocaml" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 let default_cmd =
   let doc = "build and push opam and OCaml multiarch container images" in
@@ -411,6 +467,6 @@ let default_cmd =
   ( Term.(ret (const (fun _ -> `Help (`Pager, None)) $ pure ()))
   , Term.info "obi-git" ~version:"%%VERSION%%" ~doc ~sdocs )
 
-let cmds = [gen_cmd]
+let cmds = [opam_cmd; ocaml_cmd]
 
 let () = Term.(exit @@ eval_choice default_cmd cmds)
