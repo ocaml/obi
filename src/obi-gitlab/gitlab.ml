@@ -273,7 +273,10 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         in
         let script =
           `A
-            ( pulls
+            ( [ `String
+                  "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN \
+                   registry.gitlab.com" ]
+            @ pulls
             @ [ `String
                   (Fmt.strf "docker manifest push -p %s:%s-opam || true"
                      prod_hub_id f)
