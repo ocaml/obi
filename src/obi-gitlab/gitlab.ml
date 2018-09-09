@@ -242,18 +242,71 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
                        registry.gitlab.com"
                   ; `String
                       (Fmt.strf
-                         "docker build --no-cache -t %s -f \
+                         "echo docker build --no-cache -t %s -f \
                           opam-%s/Dockerfile.%s ."
                          tag arch f)
-                  ; `String (Fmt.strf "docker push %s" tag) ] ) ]
+                  ; `String (Fmt.strf "echo docker push %s" tag) ] ) ]
         in
-        (label, cmds))
+        (label, cmds) )
       opam_dockerfiles
   in
   let opam_dockerfiles_by_arch = assoc_hashtbl opam_dockerfiles in
-  let yml = `O opam_arch_builds |> Yaml.to_string_exn ~len:256000 in
-  Bos.OS.File.write Fpath.(results_dir / "opam-builds.yml") yml >>= fun () ->
-  Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
+  let gen_multiarch h tagfn : (string * Yaml.value) list =
+    Hashtbl.fold
+      (fun f arches acc ->
+        let tags =
+          List.map
+            (fun arch -> Fmt.strf "%s:%s" staging_hub_id (tagfn f arch))
+            arches
+        in
+        let l = String.concat " " tags in
+        let pulls =
+          List.map (fun t -> `String (Fmt.strf "docker pull %s" t)) tags
+        in
+        let annotates =
+          List.map2
+            (fun tag arch ->
+              `String
+                (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s"
+                   prod_hub_id f tag (OV.string_of_arch arch)) )
+            tags arches
+        in
+        let script =
+          `A
+            ( pulls
+            @ [ `String
+                  (Fmt.strf "docker manifest push -p %s:%s-opam || true"
+                     prod_hub_id f)
+              ; `String
+                  (Fmt.strf "docker manifest create %s:%s-opam %s" prod_hub_id
+                     f l) ]
+            @ annotates
+            @ [ `String
+                  (Fmt.strf "docker manifest inspect %s:%s-opam" prod_hub_id f)
+              ; `String
+                  (Fmt.strf "docker manifest push -p %s:%s-opam" prod_hub_id f)
+              ] )
+        in
+        let cmds : Yaml.value =
+          `O
+            [ ("stage", `String "opam-multiarch")
+            ; ("retry", `String "2")
+            ; ("tags", `A [`String "shell"; `String "amd64"])
+            ; ("script", script) ]
+        in
+        (Fmt.strf "%s-opam" f, cmds) :: acc )
+      h []
+  in
+  let opam_multiarch_dockerfiles =
+    gen_multiarch opam_dockerfiles_by_arch (fun distro arch ->
+        Fmt.strf "%s-opam-linux-%s" distro (OV.string_of_arch arch) )
+  in
+  let yml =
+    `O (opam_arch_builds @ opam_multiarch_dockerfiles)
+    |> Yaml.to_string_exn ~len:256000
+  in
+  Bos.OS.File.write Fpath.(results_dir / "opam-builds.yml") yml
+  >>= fun () -> Bos.OS.File.write Fpath.(results_dir / "README.md") (docs opts)
 
 let pkg_version pkg =
   let open Astring in
@@ -295,7 +348,8 @@ let copts_t =
       "Docker Hub user/repo to push to for production multiarch builds"
     in
     let open Arg in
-    value & opt string "ocaml/opam2"
+    value
+    & opt string "registry.gitlab.com/ocaml-platform/opam-containers/opam2"
     & info ["prod-hub-id"] ~docv:"PROD_HUB_ID" ~doc ~docs
   in
   let results_dir =
