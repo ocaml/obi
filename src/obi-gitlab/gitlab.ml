@@ -266,9 +266,14 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         let annotates =
           List.map2
             (fun tag arch ->
+              let variant =
+                match arch with
+                |`Aarch32 -> " --variant v7"
+                |`Aarch64 -> " --variant v8"
+                |_ -> "" in
               `String
-                (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s"
-                   prod_hub_id f tag (OV.string_of_arch arch)) )
+                (Fmt.strf "docker manifest annotate %s:%s-opam %s --arch %s%s"
+                   prod_hub_id f tag (OV.string_of_arch arch) variant) )
             tags arches
         in
         let script =
