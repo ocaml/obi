@@ -232,8 +232,7 @@ let gen ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         let label = Fmt.strf "%s-opam-linux-%s" f arch in
         let cmds =
           `O
-            [ ("only", `A [`String "/^dockerfiles$/"])
-            ; ("stage", `String "opam-builds")
+            [ ("stage", `String "opam-builds")
             ; ("retry", `String "2")
             ; ("when", `String "manual")
             ; ("tags", `A [`String "shell"; `String arch])
