@@ -251,8 +251,7 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
           ( [`String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"]
           @ pulls
           @ [ `String
-                (Fmt.strf "docker manifest push -p %s:%s%s || true" prod_hub_id
-                   f suffix)
+                (Fmt.strf "docker manifest push -p %s:%s || true" prod_hub_id tag)
             ; `String
                 (Fmt.strf "docker manifest create %s:%s %s" prod_hub_id tag l)
             ]
