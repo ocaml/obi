@@ -208,9 +208,11 @@ let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
   `A
     [ `String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
     ; `String
-        (Fmt.strf "docker build -t %s -f  %s-%s/Dockerfile.%s ." tag prefix
-           arch distro)
-    ; `String (Fmt.strf "docker push %s" tag) ]
+        (Fmt.strf
+           "docker build --force-rm --rm --pull -t %s -f  %s-%s/Dockerfile.%s ."
+           tag prefix arch distro)
+    ; `String (Fmt.strf "docker push %s" tag)
+    ; `String (Fmt.strf "docker rmi %s" tag) ]
 
 let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
   Hashtbl.fold
@@ -267,10 +269,7 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
           ; ("tags", `A [`String "shell"; `String "amd64"])
           ; ("script", script) ]
       in
-      let jobname =
-        match tag.[0] with
-        |'0'..'9' -> "v" ^ tag
-        |_ -> tag in
+      let jobname = match tag.[0] with '0' .. '9' -> "v" ^ tag | _ -> tag in
       (jobname, cmds) :: acc )
     h []
 
@@ -332,10 +331,10 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
           try snd (Hashtbl.find ocaml_dockerfiles_by_arch f)
           with Not_found -> []
         in
-        Hashtbl.add distro_aliases f (Some tag, arches);
+        Hashtbl.add distro_aliases f (Some tag, arches) ;
         (* Add an alias for "latest" for Debian Stable too *)
-        (if ldistro = `Debian `Stable then
-          Hashtbl.add distro_aliases f (Some "latest", arches)))
+        if ldistro = `Debian `Stable then
+          Hashtbl.add distro_aliases f (Some "latest", arches) )
       D.latest_distros ;
     gen_multiarch ~staging_hub_id ~prod_hub_id distro_aliases "" "alias"
   in
