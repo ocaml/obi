@@ -233,7 +233,7 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
       in
       let annotates =
         List.map2
-          (fun tag arch ->
+          (fun atag arch ->
             let flags =
               match arch with
               | `Aarch32 -> "--arch arm --variant v7"
@@ -242,8 +242,8 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
               | `Ppc64le -> "--arch ppc64le"
             in
             `String
-              (Fmt.strf "docker manifest annotate %s:%s%s %s %s" prod_hub_id f
-                 suffix tag flags) )
+              (Fmt.strf "docker manifest annotate %s:%s %s %s" prod_hub_id tag
+                 atag flags) )
           tags arches
       in
       let script =
