@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(executables
- ((names (main))
-  (public_names (opam-ci))
-  (libraries (obi bos cmdliner fmt.cli logs.fmt fmt.tty logs.cli rresult textwrap))
-  (package opam-ci)
-))

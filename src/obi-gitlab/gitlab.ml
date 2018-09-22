@@ -20,7 +20,6 @@ module C = Dockerfile_cmd
 module G = Dockerfile_gen
 module O = Dockerfile_opam
 module OV = Ocaml_version
-open Bos
 open Rresult
 open R.Infix
 

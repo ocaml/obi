@@ -1,0 +1,8 @@
+(executables
+ (names test)
+  (libraries alcotest obi))
+
+(alias
+ (name runtest)
+  (deps test.exe owl-fail.json)
+  (action (run ${exe:test.exe})))

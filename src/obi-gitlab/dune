@@ -1,0 +1,7 @@
+(executables
+ (names gitlab)
+  (public_names obi-gitlab)
+  (libraries obi dockerfile-opam dockerfile-cmd uri ptime yaml ezjsonm)
+  (preprocess (per_module ((pps ppx_sexp_conv) import)))
+  (package obi-gitlab)
+)

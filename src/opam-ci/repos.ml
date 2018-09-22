@@ -16,7 +16,6 @@
 
 open Bos
 open Rresult
-open Astring
 
 let home_dir () = OS.Env.(value "HOME" path ~absent:(Fpath.v "."))
 
@@ -121,7 +120,7 @@ let rec init ?(retry= false) ?(refresh= `Poll) () =
     let pkgs = t.Obi.Index.packages in
     Logs.debug (fun l -> l "Found metadata for %d packages" (List.length pkgs)) ;
     Ok pkgs
-  with exn ->
+  with _exn ->
     try
       Printexc.record_backtrace true ;
       (* Manually parse the sexpression to get the version string *)

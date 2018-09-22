@@ -14,10 +14,8 @@
  *
  *)
 
-open Bos
 open Rresult
 open Astring
-open Printf
 module OV = Ocaml_version
 module D = Dockerfile_distro
 
@@ -288,7 +286,7 @@ let render_package_logs ppf name version metadata =
     (String.with_range ~len:8 metadata.rev)) ;
   match metadata.log with
   | [] -> Fmt.(pf ppf "<no logs available>@\n")
-  | logs ->
+  | _logs ->
       let w =
         Wrapper.make ~initial_indent:" " ~subsequent_indent:" "
           ~drop_whitespace:true 100
