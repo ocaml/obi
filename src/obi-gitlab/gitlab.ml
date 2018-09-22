@@ -208,7 +208,7 @@ let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
     [ `String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
     ; `String
         (Fmt.strf
-           "docker build --force-rm --rm --pull -t %s -f  %s-%s/Dockerfile.%s ."
+           "docker build --no-cache --force-rm --rm --pull -t %s -f  %s-%s/Dockerfile.%s ."
            tag prefix arch distro)
     ; `String (Fmt.strf "docker push %s" tag)
     ; `String (Fmt.strf "docker rmi %s" tag) ]
