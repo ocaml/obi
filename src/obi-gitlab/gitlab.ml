@@ -77,7 +77,7 @@ This will get you an interactive development environment (including on [Docker f
 docker run %s:ubuntu opam depext -i cohttp-lwt-unix tls
 ```
 
-There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the [Docker Hub](http://hub.docker.com/r/ocaml/opam2).
+There are a number of different variants available that are regularly rebuilt on the ocaml.org infrastructure and pushed to the [Docker Hub](http://hub.docker.com/r/ocaml/opam2).  Each of the containers contains the Dockerfile used to build it in `/Dockerfile` within the container image.
 
 
 Using The Defaults
@@ -204,12 +204,11 @@ let assoc_hashtbl l =
   h
 
 let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
+  let file = Fmt.strf "%s-%s/Dockerfile.%s" prefix arch distro in
   `A
     [ `String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
-    ; `String
-        (Fmt.strf
-           "docker build --no-cache --force-rm --rm --pull -t %s -f  %s-%s/Dockerfile.%s ."
-           tag prefix arch distro)
+    ; `String (Fmt.strf "echo ADD %s /Dockerfile >> %s" file file)
+    ; `String (Fmt.strf "docker build --no-cache --force-rm --rm --pull -t %s -f %s ." tag file)
     ; `String (Fmt.strf "docker push %s" tag)
     ; `String (Fmt.strf "docker rmi %s" tag) ]
 
