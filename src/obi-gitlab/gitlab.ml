@@ -207,6 +207,7 @@ let docker_build_and_push_cmds ~distro ~arch ~tag prefix =
   let file = Fmt.strf "%s-%s/Dockerfile.%s" prefix arch distro in
   `A
     [ `String "docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD"
+    ; `String (Fmt.strf "echo >> %s" file)
     ; `String (Fmt.strf "echo ADD %s /Dockerfile >> %s" file file)
     ; `String (Fmt.strf "docker build --no-cache --force-rm --rm --pull -t %s -f %s ." tag file)
     ; `String (Fmt.strf "docker push %s" tag)
