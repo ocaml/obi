@@ -1,0 +1,7 @@
+(executables
+ (names obi_dune)
+  (public_names obi-dune)
+  (libraries obi dockerfile-opam dockerfile-cmd bos)
+  (preprocess (per_module ((pps ppx_sexp_conv) import)))
+  (package obi-gitlab)
+)
