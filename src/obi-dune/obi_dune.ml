@@ -14,25 +14,20 @@
  *
  *)
 
-module L = Dockerfile_linux
-module D = Dockerfile_distro
-module C = Dockerfile_cmd
-module G = Dockerfile_gen
-module O = Dockerfile_opam
 module OV = Ocaml_version
+open Astring
 open Bos
 open Rresult
 open R.Infix
 
-type build_t = {ov: Ocaml_version.t; distro: D.t}
-
 module Rules = struct
 
-  let base =
+  let base ~rev =
     Fmt.strf
       {|
 (alias (name bulk) (deps results.tar.bz2))
 (rule (targets custom) (mode fallback) (action (write-file custom "LABEL obi.no-custom=true\n")))
+(rule (targets rev) (mode fallback) (action (write-file rev %S)))
 (rule (targets Dockerfile) (action (with-stdout-to %%{targets} (
     progn
       (echo "FROM ocaml/opam2:%%{read-lines:ov}\n")
@@ -42,12 +37,13 @@ module Rules = struct
       (echo "RUN opam update -uy\n")
       (echo "RUN opam switch %%{read-lines:ov}\n")
       (echo "%%{read:custom}")
-      (echo "COPY obi-ci-install /usr/bin/obi-ci-install\n")))))
+      (echo "echo %S | base64 -d > /usr/bin/obi-ci-install\n")
+      (echo "chmod a+x /usr/bin/obi-ci-install\n"))))
 (rule (targets arch) (action (with-stdout-to arch (run uname -m))))
 (rule (targets image-name)
  (action (write-file image-name "obi-%%{read-lines:distro}_ocaml-%%{read-lines:ov}_%%{read-lines:arch}_%%{read-lines:rev}")))
 (rule (targets Dockerfile.log) (deps Dockerfile obi-ci-install)
-  (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |}
+  (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev Scripts.obi_ci_install
 
   let build_one p : string =
     Fmt.strf
@@ -62,18 +58,18 @@ module Rules = struct
 
   let collect packages : string =
     let pkg ext x = Fmt.strf "%s.%s" x ext in
-    let json_deps = String.concat " " (List.map (pkg "json") packages) in
-    let txt_deps = String.concat " " (List.map (pkg "txt") packages) in
+    let json_deps = String.concat ~sep:" " (List.map (pkg "json") packages) in
+    let txt_deps = String.concat ~sep:" " (List.map (pkg "txt") packages) in
     Fmt.strf
       {|
 (rule (targets results.tar.bz2) (deps %s %s arch ov rev distro) (action (run tar -jcf %%{targets} %%{deps})))
 |} json_deps txt_deps
 
-  let gen packages =
-    [ base
+  let gen ~rev packages =
+    [ base ~rev
     ; collect packages ]
     @ List.map build_one packages
-    |> String.concat "\n"
+    |> String.concat ~sep:"\n"
 end
 
 let packages ~rev () =
@@ -87,24 +83,50 @@ let packages ~rev () =
             rev)
     |> to_lines)
 
-let gen_bulk_rules () =
-  let rev = "master" in
-  prerr_endline "Generating package list..." ;
+let opam_repo_rev rev =
+  match rev with
+  | Some rev -> Ok rev
+  | None -> begin
+      OS.Cmd.(run_out Cmd.(v "git" % "ls-remote" % "https://github.com/ocaml/opam-repository.git" % "refs/heads/master") |> to_string) >>= fun l ->
+      match String.cuts ~sep:"\t" l with
+      | hd::_ -> Logs.debug (fun l -> l "opam repo rev %s" hd); Ok hd
+      | _ -> Error (`Msg "unable to get remote head of opam-repository")
+    end
+
+let gen_bulk_rules rev () =
+  opam_repo_rev rev >>= fun rev ->
+  Logs.info (fun l -> l "Using opam repo rev %s" rev);
+  OS.File.write Fpath.(v "rev") rev >>= fun () ->
+  Logs.info (fun l -> l "Generating package list...") ;
   packages ~rev ()
   >>= fun packages ->
-  prerr_endline (Fmt.strf "... %d." (List.length packages)) ;
-  Rules.gen packages
+  Logs.info (fun l -> l "... %d packages found." (List.length packages));
+  Rules.gen ~rev packages
   |> fun dune -> prerr_endline dune ; Ok ()
 
 open Cmdliner
 
-let setup_logs = C.setup_logs ()
+let setup_logs =
+  let setup_log style_renderer level =
+    Fmt_tty.setup_std_outputs ?style_renderer ();
+    Logs.set_level level;
+    Logs.set_reporter (Logs_fmt.reporter ()) in
+  let global_option_section = "COMMON OPTIONS" in
+  Term.(const setup_log
+    $ Fmt_cli.style_renderer ~docs:global_option_section ()
+    $ Logs_cli.level ~docs:global_option_section ())
+
+let opam_repo_rev_t =
+  let doc = "opam repo git rev" in
+  let open Arg in
+  value & opt (some string) None
+  & info ["opam-repo-rev"] ~docv:"OPAM_REPO_REV" ~doc
 
 let opam_cmd =
   let doc = "generate bulk build dune rules for a particular opam repo rev" in
   let exits = Term.default_exits in
   let man = [`S Manpage.s_description; `P "TODO"] in
-  ( Term.(term_result (const gen_bulk_rules $ setup_logs))
+  ( Term.(term_result (const gen_bulk_rules $ opam_repo_rev_t $ setup_logs))
   , Term.info "rules" ~doc ~sdocs:Manpage.s_common_options ~exits ~man )
 
 let default_cmd =

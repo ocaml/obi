@@ -10,4 +10,3 @@ exitcode=$?
 endtime=`date +%s`
 echo $exitcode $starttime $endtime >> $1.txt
 tar -cf - $1.txt $1.json
-

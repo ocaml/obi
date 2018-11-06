@@ -1,7 +1,15 @@
 (executables
  (names obi_dune)
   (public_names obi-dune)
-  (libraries obi dockerfile-opam dockerfile-cmd bos)
-  (preprocess (per_module ((pps ppx_sexp_conv) import)))
-  (package obi-gitlab)
+  (libraries obi bos cmdliner fmt fmt.cli logs.fmt fmt.tty logs.cli)
+  (package obi-dune)
 )
+
+(rule
+ (targets scripts.b64)
+ (deps scripts/obi-ci-install.sh)
+ (action (with-stdout-to %{targets} (run base64 %{deps}))))
+
+(rule
+ (targets scripts.ml)
+ (action (write-file scripts.ml "let obi_ci_install = \"%{read-lines:scripts.b64}\"")))

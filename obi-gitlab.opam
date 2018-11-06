@@ -9,8 +9,8 @@ bug-reports: "https://github.com/ocaml/obi/issues"
 tags: ["org:mirage" "org:ocamllabs"]
 available: [ ocaml-version >= "4.05.0"]
 depends: [
-  "jbuilder" {build & >="1.0+beta17"}
   "obi"
+  "dune" {build}
   "dockerfile-opam" {>="5.0.0"}
   "dockerfile-cmd" {>="5.0.0"}
   "ezjsonm"
@@ -19,6 +19,6 @@ depends: [
   "yaml" {>="0.2.0"}
 ]
 build: [
-  ["jbuilder" "subst" "-p" name "--name" name] {pinned}
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
