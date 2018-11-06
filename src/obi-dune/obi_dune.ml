@@ -23,6 +23,7 @@ open R.Infix
 module Rules = struct
 
   let base ~rev =
+    let script = String.cuts ~sep:"\n" Scripts.obi_ci_install |> String.concat ~sep:"" in
     Fmt.strf
       {|
 (alias (name bulk) (deps results.tar.bz2))
@@ -38,13 +39,13 @@ module Rules = struct
       (echo "RUN opam switch %%{read-lines:ov}\n")
       (echo "%%{read:custom}")
       (echo "RUN echo '%s' | base64 -d > /tmp/obi-ci-install\n")
-      (echo "RUN mv /tmp/obi-ci-install /usr/bin/obi-ci-install\n")
+      (echo "RUN sudo mv /tmp/obi-ci-install /usr/bin/obi-ci-install\n")
       (echo "RUN sudo chmod a+x /usr/bin/obi-ci-install\n")))))
 (rule (targets arch) (action (with-stdout-to arch (run uname -m))))
 (rule (targets image-name)
  (action (write-file image-name "obi-%%{read-lines:distro}_ocaml-%%{read-lines:ov}_%%{read-lines:arch}_%%{read-lines:rev}")))
 (rule (targets Dockerfile.log) (deps Dockerfile)
-  (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev Scripts.obi_ci_install
+  (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev script
 
   let build_one p : string =
     Fmt.strf
