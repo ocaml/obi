@@ -102,7 +102,10 @@ let gen_bulk_rules rev () =
   >>= fun packages ->
   Logs.app (fun l -> l "... %d packages found." (List.length packages));
   Rules.gen ~rev packages
-  |> fun dune -> print_endline dune ; Ok ()
+  |> fun dune ->
+  OS.File.exists Fpath.(v "dune") >>= function
+  | true -> R.error_msg "`dune` file exists, please delete it and rerun"
+  | false -> OS.File.write Fpath.(v "dune") dune
 
 open Cmdliner
 
