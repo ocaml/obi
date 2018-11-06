@@ -38,11 +38,11 @@ module Rules = struct
       (echo "RUN opam switch %%{read-lines:ov}\n")
       (echo "%%{read:custom}")
       (echo "echo %S | base64 -d > /usr/bin/obi-ci-install\n")
-      (echo "chmod a+x /usr/bin/obi-ci-install\n"))))
+      (echo "chmod a+x /usr/bin/obi-ci-install\n")))))
 (rule (targets arch) (action (with-stdout-to arch (run uname -m))))
 (rule (targets image-name)
  (action (write-file image-name "obi-%%{read-lines:distro}_ocaml-%%{read-lines:ov}_%%{read-lines:arch}_%%{read-lines:rev}")))
-(rule (targets Dockerfile.log) (deps Dockerfile obi-ci-install)
+(rule (targets Dockerfile.log) (deps Dockerfile)
   (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev Scripts.obi_ci_install
 
   let build_one p : string =
@@ -51,7 +51,7 @@ module Rules = struct
 (rule (targets %s.json) (deps %s.tar) (action (with-stdout-to %%{targets} (run tar -xOf %%{deps} %s.json))))
 (rule (targets %s.txt) (deps %s.tar) (action (with-stdout-to %%{targets} (run tar -xOf %%{deps} %s.txt))))
 
-(rule (targets %s.tar)
+(rule (targets %s.tar) (deps Dockerfile.log)
  (action (with-stdout-to %%{targets}
     (run docker run --privileged --rm -v opam2-archive:/home/opam/.opam/download-cache %%{read:image-name} obi-ci-install %s)))) |}
       p p p p p p p p
