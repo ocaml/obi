@@ -12,4 +12,4 @@
 
 (rule
  (targets scripts.ml)
- (action (write-file scripts.ml "let obi_ci_install = \"%{read-lines:scripts.b64}\"")))
+ (action (write-file scripts.ml "let obi_ci_install = \"%{read:scripts.b64}\"")))
