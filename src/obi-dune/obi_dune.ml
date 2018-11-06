@@ -45,7 +45,7 @@ module Rules = struct
 (rule (targets image-name)
  (action (write-file image-name "obi-%%{read-lines:distro}_ocaml-%%{read-lines:ov}_%%{read-lines:arch}_%%{read-lines:rev}")))
 (rule (targets Dockerfile.log) (deps Dockerfile)
-  (action (with-outputs-to Dockerfile.log (run docker build --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev script
+  (action (with-outputs-to Dockerfile.log (run docker build --no-cache --pull -t %%{read:image-name} --rm --force-rm .)))) |} rev script
 
   let build_one p : string =
     Fmt.strf
