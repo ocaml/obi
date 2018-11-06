@@ -95,14 +95,14 @@ let opam_repo_rev rev =
 
 let gen_bulk_rules rev () =
   opam_repo_rev rev >>= fun rev ->
-  Logs.info (fun l -> l "Using opam repo rev %s" rev);
+  Logs.app (fun l -> l "Using opam repo rev %s" rev);
   OS.File.write Fpath.(v "rev") rev >>= fun () ->
-  Logs.info (fun l -> l "Generating package list...") ;
+  Logs.app (fun l -> l "Generating package list...") ;
   packages ~rev ()
   >>= fun packages ->
-  Logs.info (fun l -> l "... %d packages found." (List.length packages));
+  Logs.app (fun l -> l "... %d packages found." (List.length packages));
   Rules.gen ~rev packages
-  |> fun dune -> prerr_endline dune ; Ok ()
+  |> fun dune -> print_endline dune ; Ok ()
 
 open Cmdliner
 
