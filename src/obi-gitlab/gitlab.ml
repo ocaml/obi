@@ -114,10 +114,10 @@ Note that the name of the switch drops the minor patch release (e.g. `4.06` _vs_
 Accessing Compiler Variants
 ===========================
 
-Modern versions of OCaml also feature a number of variants, such as the experimental flambda inliner or [AFL fuzzing](http://lcamtuf.coredump.cx/afl/) support.  These are also conveniently available using the `v<VERSION>` tag. For example:
+Modern versions of OCaml also feature a number of variants, such as the experimental flambda inliner or [AFL fuzzing](http://lcamtuf.coredump.cx/afl/) support.  These are also conveniently available using the `<VERSION>` tag. For example:
 
 ```
-$ docker run %s:v4.06 opam switch
+$ docker run %s:4.06 opam switch
     switch                      compiler                                     description
 ->  4.06                        ocaml-base-compiler.4.06.1                   4.06
     4.06+afl                    ocaml-variants.4.06.1+afl                    4.06+afl
@@ -126,7 +126,7 @@ $ docker run %s:v4.06 opam switch
     4.06+force-safe-string      ocaml-variants.4.06.1+force-safe-string      4.06+force-safe-string
 ```
 
-In this case, the `v4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
+In this case, the `4.06` container has the latest patch release (4.06.1) activated by default, but the other variant compilers are available easily via `opam switch` without having to compile them yourself.  Using this more specific tag also helps you pin the version of OCaml that your CI system will be testing with, as the default `latest` tag will be regularly upgraded to keep up with upstream OCaml releases.
 
 
 Selecting Linux Distributions
