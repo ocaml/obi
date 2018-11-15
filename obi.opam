@@ -1,27 +1,43 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "Anil Madhavapeddy <anil@recoil.org>"
-authors: ["Anil Madhavapeddy <anil@recoil.org>"]
+authors: "Anil Madhavapeddy <anil@recoil.org>"
+license: "ISC"
+tags: ["org:mirage" "org:ocamllabs"]
 homepage: "https://github.com/ocaml/obi"
 doc: "https://ocaml.github.io/obi/"
-license: "ISC"
-dev-repo: "https://github.com/ocaml/obi.git"
 bug-reports: "https://github.com/ocaml/obi/issues"
-tags: ["org:mirage" "org:ocamllabs"]
-available: [ ocaml-version >= "4.05.0"]
 depends: [
+  "ocaml" {>= "4.05.0"}
   "dune" {build}
-  "dockerfile-opam" {>="6.0.0"}
-  "dockerfile-cmd" {>="6.0.0"}
-  "ocaml-version" {>="1.0.0"}
-  "yaml" {>="0.2.0"}
+  "dockerfile-opam" {>= "6.0.0"}
+  "dockerfile-cmd" {>= "6.0.0"}
+  "ocaml-version" {>= "1.0.0"}
+  "yaml" {>= "0.2.0"}
   "uri"
   "ezjsonm"
   "opam-core"
   "ptime"
   "textwrap"
-
 ]
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
 ]
+dev-repo: "git+https://github.com/ocaml/obi.git"
+synopsis: "Interface to OCaml Build Infrastructure"
+description: """
+This package contains the OCaml libraries to access the opam2 bulk build
+infrastructure that checks on the health of the [opam](https://opam.ocaml.org)
+package manager.
+
+The main services and repositories associates with this infrastructure are:
+
+- **Documentation:**
+  - <https://github.com/ocaml/infrastructure/wiki>
+  - <https://github.com/ocaml/infrastructure/wiki/Containers> is rebuilt automatically with the latest information
+- **GitHub:** Git repositories
+  - <https://github.com/ocaml/obi>: for the source code
+- **Docker Hub:** container images
+  - <https://hub.docker.com/r/ocaml/opam2>: opam2 and OCaml compiler images
+  - <https://hub.docker.com/r/ocaml/opam2-staging>: intermediate container images for bulk builds
+"""
