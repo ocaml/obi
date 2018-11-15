@@ -13,6 +13,7 @@ depends: [
   "bos"
   "fmt"
   "logs"
+  "obi"
   "cmdliner"
 ]
 build: [
