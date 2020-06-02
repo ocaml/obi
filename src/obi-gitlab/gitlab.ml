@@ -311,7 +311,7 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             [ ("stage", `String "ocaml-builds")
             ; ("retry", `String "2")
             ; ("except", `A [`String "pushes"])
-            ; ("tags", `A [`String "shell"; `String arch])
+            ; ("tags", `A [`String "shell"; `String (if arch = "i386" then "amd64" else arch) ])
             ; ( "script"
               , docker_build_and_push_cmds ~distro:f ~arch ~tag "ocaml" ) ]
         in
@@ -399,7 +399,7 @@ let gen_opam ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             [ ("stage", `String "opam-builds")
             ; ("retry", `String "2")
             ; ("except", `A [`String "pushes"])
-            ; ("tags", `A [`String "shell"; `String arch])
+            ; ("tags", `A [`String "shell"; `String (if arch = "i386" then "amd64" else arch)])
             ; ("script", docker_build_and_push_cmds ~distro:f ~arch ~tag "opam")
             ]
         in
@@ -433,7 +433,7 @@ let fpath = Arg.conv ~docv:"PATH" (Fpath.of_string, Fpath.pp)
 let arch =
   let doc = "CPU architecture to perform build on" in
   let term =
-    Arg.enum [("amd64", `X86_64); ("arm64", `Aarch64); ("ppc64le", `Ppc64le)]
+    Arg.enum [("i386", `I386); ("amd64", `X86_64); ("arm64", `Aarch64); ("ppc64le", `Ppc64le)]
   in
   Arg.(value & opt term `X86_64 & info ["arch"] ~docv:"ARCH" ~doc)
 
