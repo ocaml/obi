@@ -184,7 +184,7 @@ module S = struct
     | _ -> "?"
 
   let u_of_arch =
-    U.(function `X86_64 -> amd64 | `Aarch64 -> arm64 | `Ppc64le -> ppc64 | `Aarch32 -> arm32 )
+    U.(function `I386|`X86_64 -> amd64 | `Aarch64 -> arm64 | `Ppc64le -> ppc64 | `Aarch32 -> arm32 )
 
   let render_classify ppf fn m u =
     match fn m |> A.classify with

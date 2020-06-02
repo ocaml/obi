@@ -241,6 +241,7 @@ let gen_multiarch ~staging_hub_id ~prod_hub_id h suffix name =
             let flags =
               match arch with
               | `Aarch32 -> "--arch arm --variant v7"
+              | `I386 -> "--arch i386"
               | `Aarch64 -> "--arch arm64 --variant v8"
               | `X86_64 -> "--arch amd64"
               | `Ppc64le -> "--arch ppc64le"
