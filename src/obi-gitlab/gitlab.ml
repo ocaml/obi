@@ -385,7 +385,7 @@ let gen_opam ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
         (* Add temporary override to test https://github.com/ocaml/opam-repository/pull/16722 *)
         let open Dockerfile in
         let test_16722 = run "cd /home/opam/opam-repository && git remote add avsm git://github.com/avsm/opam-repository && git fetch avsm && git merge --no-edit avsm/fix-gcc10-variants" in
-        let dfiles = List.map (fun distro -> let t,d = O.gen_opam2_distro distro in t, (d @@ test_16722)) distros in
+        let dfiles = List.map (fun distro -> let t,d = O.gen_opam2_distro ~arch distro in t, (d @@ test_16722)) distros in
         ignore (G.generate_dockerfiles ~crunch:true results_dir dfiles) ;
         List.map (fun (f, _) -> (f, arch)) dfiles )
       arches
