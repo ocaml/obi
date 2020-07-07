@@ -311,7 +311,7 @@ let gen_ocaml ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             [ ("stage", `String "ocaml-builds")
             ; ("retry", `String "2")
             ; ("except", `A [`String "pushes"])
-            ; ("tags", `A [`String "shell"; `String (if arch = "i386" then "amd64" else arch) ])
+            ; ("tags", `A [`String "shell"; `String (match arch with "i386" -> "amd64" | "arm32v7" -> "arm64" | _ -> arch) ])
             ; ( "script"
               , docker_build_and_push_cmds ~distro:f ~arch ~tag "ocaml" ) ]
         in
@@ -400,7 +400,7 @@ let gen_opam ({staging_hub_id; prod_hub_id; results_dir; _} as opts) () =
             [ ("stage", `String "opam-builds")
             ; ("retry", `String "2")
             ; ("except", `A [`String "pushes"])
-            ; ("tags", `A [`String "shell"; `String (if arch = "i386" then "amd64" else arch)])
+            ; ("tags", `A [`String "shell"; `String (match arch with "i386" -> "amd64" | "arm32v7" -> "arm64" | _ -> arch)])
             ; ("script", docker_build_and_push_cmds ~distro:f ~arch ~tag "opam")
             ]
         in
